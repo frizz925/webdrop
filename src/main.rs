@@ -1,12 +1,13 @@
 use std::{
-    io,
+    fs::File,
+    io::Read,
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use axum::{
     extract::{DefaultBodyLimit, Multipart},
-    http::StatusCode,
+    http::{header, Response, StatusCode},
     routing::post,
     Router,
 };
@@ -33,14 +34,31 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn upload_handler(multipart: Multipart) -> Result<String, (StatusCode, String)> {
-    do_upload(multipart)
-        .await
-        .map(|_| "Upload success".to_string())
-        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
+async fn upload_handler(multipart: Multipart) -> Response<String> {
+    match do_upload(multipart).await {
+        Ok(_) => {
+            let html = upload_success_page().await.unwrap();
+            Response::builder()
+                .header(header::CONTENT_TYPE, "text/html")
+                .body(html)
+                .unwrap()
+        }
+        Err(err) => Response::builder()
+            .header(header::CONTENT_TYPE, "text/plain")
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(err.to_string())
+            .unwrap(),
+    }
 }
 
-async fn do_upload(mut multipart: Multipart) -> io::Result<()> {
+async fn upload_success_page() -> std::io::Result<String> {
+    let mut s = String::default();
+    let mut file = File::open("web/success.html")?;
+    file.read_to_string(&mut s)?;
+    Ok(s)
+}
+
+async fn do_upload(mut multipart: Multipart) -> std::io::Result<()> {
     let epoch = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
