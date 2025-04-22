@@ -4,6 +4,23 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.8.0", features = ["multipart"] }
+axum = { version = "0.8.0", features = ["macros", "multipart"] }
+axum-extra = { version = "0.10.1", features = ["cookie"] }
+base64 = "0.22.1"
+chrono = { version = "0.4.40", features = ["serde"] }
+mime = "0.3.17"
+qrcode = "0.14.1"
+rand = { version = "0.9.1", default-features = false, features = ["os_rng", "small_rng"] }
+serde = { version = "1.0.219", features = ["serde_derive"] }
+serde_json = "1.0.140"
+slog = "2.7.0"
+sloggers = "2.2.0"
 tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread"] }
+tokio-util = { version = "0.7.14", features = ["io"] }
+tower = "0.5.2"
 tower-http = { version = "0.6.2", features = ["fs"] }
+url = { version = "2.5.4", features = ["serde"] }
+uuid = { version = "1.16.0", features = ["serde", "v4"] }
+
+[dev-dependencies]
+temp-dir = "0.1.14"
