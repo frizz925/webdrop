@@ -42,6 +42,10 @@
 		]
 	},
 	"dependencies": {
+		"@fortawesome/fontawesome-svg-core": "^6.7.2",
+		"@fortawesome/free-regular-svg-icons": "^6.7.2",
+		"@fortawesome/free-solid-svg-icons": "^6.7.2",
+		"@fortawesome/svelte-fontawesome": "^0.2.3",
 		"@sveltejs/adapter-static": "^3.0.8"
 	}
 }
