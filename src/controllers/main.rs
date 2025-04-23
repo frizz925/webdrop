@@ -11,10 +11,11 @@ use axum::{
 use axum_extra::extract::{cookie::Cookie, CookieJar};
 use qrcode::{render::svg, QrCode};
 use serde::Deserialize;
+use tower_http::services::ServeDir;
 
 use crate::{models::session::SessionId, repositories::SessionRepository};
 
-use super::{session::SessionController, ConcreteSessionRepository};
+use super::{session::SessionController, ConcreteSessionRepository, PUBLIC_PATH};
 
 const SESSION_COOKIE: &str = "my-session-id";
 
@@ -41,6 +42,7 @@ impl MainController {
             .route("/", get(entry_handler).with_state(state))
             .route("/qrcode", post(qrcode_handler))
             .nest("/s", SessionController::new(session).into_router())
+            .fallback_service(ServeDir::new(PUBLIC_PATH))
     }
 }
 

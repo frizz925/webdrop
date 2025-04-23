@@ -19,7 +19,7 @@ use crate::{
     repositories::{session::Error as SessionError, SessionRepository},
 };
 
-use super::ConcreteSessionRepository;
+use super::{ConcreteSessionRepository, PUBLIC_PATH};
 
 pub struct SessionController {
     repository: Arc<ConcreteSessionRepository>,
@@ -32,8 +32,9 @@ impl SessionController {
 
     pub fn into_router(self) -> Router {
         let state = Arc::new(self);
+        let index = format!("{PUBLIC_PATH}/index.html");
         Router::new()
-            .route("/{sid}", get_service(ServeFile::new("web/index.html"))) // TODO: Implement upload handler
+            .route("/{sid}", get_service(ServeFile::new(index))) // TODO: Implement upload handler
             .route("/{sid}/{fid}", get(download_handler))
             .with_state(state)
     }
