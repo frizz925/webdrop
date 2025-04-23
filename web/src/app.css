@@ -11,6 +11,8 @@ body {
 }
 
 div {
+	border-color: var(--color-gray-200);
+
 	@media (prefers-color-scheme: dark) {
 		border-color: var(--color-slate-700);
 	}
@@ -22,4 +24,16 @@ div {
 	@media (prefers-color-scheme: dark) {
 		background-color: var(--color-slate-800);
 	}
+}
+
+.text-sub {
+	color: var(--color-gray-500);
+}
+
+.text-accent {
+	color: var(--color-sky-400);
+}
+
+.bg-accent {
+	background-color: var(--color-sky-400);
 }
