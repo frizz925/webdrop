@@ -1,5 +1,5 @@
 <script>
-	import Form from '../components/Form.svelte';
+	import Form from '$lib/components/Form.svelte';
 </script>
 
 <div class="mx-auto max-w-xl lg:border-r lg:border-l dark:border-slate-700">
