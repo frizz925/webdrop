@@ -6,8 +6,7 @@
 		faImage,
 		faLink,
 		faMicrophone,
-		faPencil,
-		faUpload
+		faPencil
 	} from '@fortawesome/free-solid-svg-icons';
 	import FilePreview from './FilePreview.svelte';
 	import FormButtons from './FormButtons.svelte';
@@ -85,7 +84,7 @@
 			<FilePreview {file} name={file.name} type={file.type} />
 		{/each}
 	</div>
-	<FormButtons bind:state={state.form} icon={faUpload} />
+	<FormButtons bind:state={state.form} />
 </div>
 
 <style>

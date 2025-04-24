@@ -26,7 +26,7 @@
 				oninput={updateInput}
 			/>
 			<button
-				class="h-12 cursor-pointer bg-gray-800 px-4 text-gray-50 dark:bg-gray-50 dark:text-gray-800"
+				class="h-12 cursor-pointer bg-gray-800 px-4 text-gray-100 dark:bg-gray-100 dark:text-gray-800"
 				onclick={joinSession}
 			>
 				Join

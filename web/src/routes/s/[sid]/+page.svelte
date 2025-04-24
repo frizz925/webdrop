@@ -48,11 +48,15 @@
 </div>
 <div class="mt-12">
 	<div class="flex items-center justify-start border-b py-1 pr-2 pl-4">
-		<div class="grow">
-			<span class="hidden font-semibold sm:inline">Session ID</span>
-			<span class="inline font-semibold sm:hidden">SID</span>
-			<span class:hidden={!sidShown}>{slug}</span>
-			<span class:hidden={sidShown} class="italic opacity-50"> xxxx-xxxx-xxxx-xxxx </span>
+		<div class="flex grow items-center justify-start">
+			<div class="mr-2">
+				<span class="hidden font-semibold sm:inline">Session ID</span>
+				<span class="inline font-semibold sm:hidden">SID</span>
+			</div>
+			<div>
+				<span class:hidden={!sidShown}>{slug}</span>
+				<span class:hidden={sidShown} class="italic opacity-50"> xxxx-xxxx-xxxx-xxxx </span>
+			</div>
 		</div>
 		<div class="text-sub flex items-center justify-start">
 			<div class:hidden={sidShown}>

@@ -14,13 +14,13 @@
 
 <div class="flex items-center justify-end">
 	<button
-		class="mr-2 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-red-400 text-gray-50"
+		class="mr-2 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-red-400 text-gray-100"
 		onclick={() => (state = FormState.None)}
 	>
 		<FontAwesomeIcon icon={faX} />
 	</button>
 	<button
-		class="bg-accent flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-gray-50"
+		class="bg-accent flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-gray-100"
 		onclick={onsubmit}
 	>
 		<FontAwesomeIcon {icon} />

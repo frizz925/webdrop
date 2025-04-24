@@ -40,7 +40,7 @@
 </script>
 
 <div class="p-1">
-	<div class="w-36 rounded-md border p-2 shadow-sm">
+	<div class="w-36 rounded-md border p-2 shadow-sm dark:shadow-gray-900">
 		{#if imageSrc}
 			<img src={imageSrc} alt={name} class="m-auto block h-36 object-contain" />
 		{:else}
