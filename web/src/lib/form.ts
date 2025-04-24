@@ -1,5 +1,9 @@
 export enum FormState {
 	None = 'none',
 	Text = 'text',
-	Link = 'link'
+	Link = 'link',
+	Image = 'image',
+	Video = 'video',
+	Audio = 'audio',
+	File = 'file'
 }

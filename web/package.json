@@ -47,6 +47,8 @@
 		"@fortawesome/free-solid-svg-icons": "^6.7.2",
 		"@fortawesome/svelte-fontawesome": "^0.2.3",
 		"@sveltejs/adapter-static": "^3.0.8",
-		"date-fns": "^4.1.0"
+		"@types/qrcode": "^1.5.5",
+		"date-fns": "^4.1.0",
+		"qrcode": "^1.5.4"
 	}
 }

@@ -14,7 +14,7 @@
 	};
 </script>
 
-<div class="m-auto flex h-dvh max-w-xl flex-col items-stretch justify-center">
+<div class="m-auto flex h-screen max-w-xl flex-col items-stretch justify-center">
 	<div class="bg-color flex flex-col items-center">
 		<h1 class="text-4xl font-bold">WebDrop</h1>
 		<h2 class="text-xl">Easily share files over the web</h2>

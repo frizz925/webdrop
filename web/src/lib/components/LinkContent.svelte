@@ -18,6 +18,6 @@
 		<div class="text-sm">
 			<FontAwesomeIcon icon={download ? faDownload : faLink} />
 		</div>
-		<a href={url} class="text-accent ml-2" {download}>{name}</a>
+		<a href={url} target="_blank" class="text-accent ml-2" {download}>{name}</a>
 	</div>
 </Content>

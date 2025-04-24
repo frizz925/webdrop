@@ -4,6 +4,7 @@
 	import IconButton from '$lib/components/IconButton.svelte';
 	import ImageContent from '$lib/components/ImageContent.svelte';
 	import LinkContent from '$lib/components/LinkContent.svelte';
+	import QRCodeWindow from '$lib/components/QRCodeWindow.svelte';
 	import TextContent from '$lib/components/TextContent.svelte';
 	import { sluggify } from '$lib/utils';
 	import { faClipboard } from '@fortawesome/free-regular-svg-icons';
@@ -15,7 +16,14 @@
 	Tung tung tung tung tung tung tung tung tung sahur. Anomali mengerikan yang hanya keluar pada sahur. Konon katanya kalau ada orang yang dipanggil Sahur tiga kali dan tidak nyaut maka makhluk ini datang di rumah kalian. Hiii seremnya. Tung tung ini biasanya bersuara layaknya pukulan kentungan seperti ini tung tung tung tung. Share ke teman kalian yang susah Sahur. 
 	`;
 
+	let sidShown = $state(false);
+	let qrcodeShown = $state(false);
+
 	const getLink = () => window.location.toString();
+
+	const returnToTop = () => {
+		window.scrollTo(0, 0);
+	};
 
 	const copySlug = () => {
 		navigator.clipboard.writeText(slug);
@@ -28,16 +36,18 @@
 		});
 	};
 
-	let sidShown = $state(false);
+	const showQrcode = () => {
+		qrcodeShown = true;
+	};
 </script>
 
 <div
 	class="bg-color fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-center border-b px-4"
 >
-	<button class="text-xl font-bold" onclick={() => window.scrollTo(0, 0)}>WebDrop</button>
+	<button class="cursor-pointer text-xl font-bold" onclick={returnToTop}>WebDrop</button>
 </div>
 <div class="mt-12">
-	<div class="flex items-center justify-start border-b px-4 py-1">
+	<div class="flex items-center justify-start border-b py-1 pr-2 pl-4">
 		<div class="grow">
 			<span class="hidden font-semibold sm:inline">Session ID</span>
 			<span class="inline font-semibold sm:hidden">SID</span>
@@ -54,7 +64,7 @@
 			<IconButton icon={faClipboard} onclick={copySlug} />
 		</div>
 		<div class="text-sub hidden items-center justify-start sm:flex">
-			<IconButton icon={faQrcode} />
+			<IconButton icon={faQrcode} onclick={showQrcode} />
 			<IconButton icon={faShare} onclick={shareLink} />
 		</div>
 	</div>
@@ -73,3 +83,4 @@
 		/>
 	</div>
 </div>
+<QRCodeWindow bind:shown={qrcodeShown} />
