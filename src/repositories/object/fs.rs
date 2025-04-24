@@ -58,7 +58,7 @@ impl ObjectFsRepository {
         let json = serde_json::to_string(&obj)?;
         file.write_all(json.as_bytes()).await?;
 
-        let result = ObjectResult::from_object(&obj, None);
+        let result = ObjectResult::from_object(&obj);
         let mut sess = self.load_session().await?;
         sess.objects.push(obj);
         sess.objects.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
@@ -106,7 +106,7 @@ impl ObjectRepository for ObjectFsRepository {
 
     async fn get(&self, oid: &ObjectId) -> Result<ObjectResult> {
         let obj = self.get_object(oid).await?;
-        Ok(ObjectResult::from_object(&obj, None))
+        Ok(ObjectResult::from_object(&obj))
     }
 
     async fn download(

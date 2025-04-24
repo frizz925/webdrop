@@ -3,7 +3,6 @@ use std::{str::FromStr, time::SystemTimeError};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use url::Url;
 
 use super::snowflake::SnowflakeId;
 
@@ -59,17 +58,15 @@ pub struct ObjectResult {
     pub mime: String,
     pub timestamp: DateTime<Utc>,
     pub content: Value,
-    pub url: Option<Url>,
 }
 
 impl ObjectResult {
-    pub fn from_object(obj: &Object, url: Option<Url>) -> Self {
+    pub fn from_object(obj: &Object) -> Self {
         Self {
             id: obj.id,
             mime: obj.mime.clone(),
             timestamp: obj.timestamp,
             content: obj.content.clone(),
-            url,
         }
     }
 }
