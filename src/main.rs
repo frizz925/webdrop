@@ -1,7 +1,13 @@
-use slog::{info, Logger};
-use sloggers::{terminal::TerminalLoggerBuilder, types::Severity, Build};
+use std::{path::PathBuf, str::FromStr};
+
+use log::info;
 use tokio::net::TcpListener;
-use webdrop::{controllers::MainController, repositories::session::SessionFsRepository};
+use webdrop::{
+    controllers::MainController,
+    models::session::SessionId,
+    services::{object::ObjectService, session::SessionService},
+    ConcreteObjectRepository, ConcreteObjectService, ConcreteServiceRepository,
+};
 
 const LISTENER_ADDR: &str = "0.0.0.0:8000";
 
@@ -9,21 +15,24 @@ const STORAGE_DIR: &str = "storage";
 
 #[tokio::main]
 async fn main() {
-    let logger = create_logger();
-    let repository = SessionFsRepository::new(STORAGE_DIR);
-    let controller = MainController::new(repository);
+    tracing_subscriber::fmt().init();
+
+    let repository = ConcreteServiceRepository::new(STORAGE_DIR);
+    let service = SessionService::new(repository);
+    let controller = MainController::new(service, object_service_factory);
     let router = controller.into_router();
 
     let listener = TcpListener::bind(LISTENER_ADDR).await.unwrap();
     let addr = listener.local_addr().unwrap();
-    info!(logger, "Listening at {addr}");
+    info!("Listening at {addr}");
 
     axum::serve(listener, router).await.unwrap();
 }
 
-fn create_logger() -> Logger {
-    TerminalLoggerBuilder::new()
-        .level(Severity::Info)
-        .build()
+fn object_service_factory(sid: &SessionId) -> ConcreteObjectService {
+    let dir = PathBuf::from_str(STORAGE_DIR)
         .unwrap()
+        .join(sid.to_string());
+    let repository = ConcreteObjectRepository::new(dir);
+    ObjectService::new(repository)
 }

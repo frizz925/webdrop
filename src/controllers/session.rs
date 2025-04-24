@@ -1,7 +1,4 @@
-use std::{
-    io::{Error as IoError, ErrorKind},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use axum::{
     body::Body,
@@ -12,22 +9,22 @@ use axum::{
 };
 use tokio_util::io::ReaderStream;
 use tower_http::services::ServeFile;
-use uuid::Uuid;
 
 use crate::{
-    models::session::SessionId,
-    repositories::{session::Error as SessionError, SessionRepository},
+    models::{object::ObjectId, session::SessionId},
+    services::object::Error as ObjectError,
+    ObjectServiceFactory,
 };
 
-use super::{ConcreteSessionRepository, PUBLIC_PATH};
+use super::PUBLIC_PATH;
 
 pub struct SessionController {
-    repository: Arc<ConcreteSessionRepository>,
+    object: ObjectServiceFactory,
 }
 
 impl SessionController {
-    pub fn new(repository: Arc<ConcreteSessionRepository>) -> Self {
-        Self { repository }
+    pub fn new(object: ObjectServiceFactory) -> Self {
+        Self { object }
     }
 
     pub fn into_router(self) -> Router {
@@ -35,35 +32,24 @@ impl SessionController {
         let index = format!("{PUBLIC_PATH}/index.html");
         Router::new()
             .route("/{sid}", get_service(ServeFile::new(index))) // TODO: Implement upload handler
-            .route("/{sid}/{fid}", get(download_handler))
+            .route("/{sid}/{oid}/{name}", get(download_handler))
             .with_state(state)
     }
 }
 
 async fn download_handler(
     State(controller): State<Arc<SessionController>>,
-    Path((sid, fid)): Path<(SessionId, Uuid)>,
+    Path((sid, oid, name)): Path<(SessionId, ObjectId, String)>,
 ) -> Result<Body, (StatusCode, String)> {
-    let repository = &controller.repository;
-    match repository.download(sid, fid).await {
+    let service = (controller.object)(&sid);
+    match service.download(&oid, &name).await {
         Ok(reader) => Ok(Body::from_stream(ReaderStream::new(reader))),
         Err(e) => {
-            let result = if let Some(inner) = e.downcast_ref::<IoError>() {
-                if inner.kind() == ErrorKind::NotFound {
-                    Ok(StatusCode::NOT_FOUND)
-                } else {
-                    Err(e)
-                }
-            } else if e.is::<SessionError>() {
-                Ok(StatusCode::NOT_FOUND)
-            } else {
-                Err(e)
+            let code = match e {
+                ObjectError::ObjectNotFound => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
             };
-            let resp = result.map_or_else(
-                |e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
-                |c| (c, String::default()),
-            );
-            Err(resp)
+            Err((code, e.to_string()))
         }
     }
 }
