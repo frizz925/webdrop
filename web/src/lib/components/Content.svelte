@@ -1,12 +1,19 @@
 <script lang="ts">
 	import { format, formatDistanceToNowStrict } from 'date-fns';
 
-	const { children, timestamp }: { children: any; timestamp: Date } = $props();
+	interface Props {
+		children?: any;
+		timestamp: Date;
+	}
+
+	const { children, timestamp }: Props = $props();
 	const distance = formatDistanceToNowStrict(timestamp);
 	const datetime = format(timestamp, 'yyyy-MM-dd HH:mm:ss');
 
 	let showTimestamp = $state(false);
-	const toggleTimestamp = () => (showTimestamp = !showTimestamp);
+	const toggleTimestamp = () => {
+		showTimestamp = !showTimestamp;
+	};
 </script>
 
 <div class="border-b">

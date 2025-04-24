@@ -1,20 +1,25 @@
 <script lang="ts">
 	import type { IconDefinition } from '@fortawesome/free-regular-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
+	import type { ClassValue } from 'svelte/elements';
 
 	interface Props {
 		icon: IconDefinition;
 		hoverBgColor?: string;
+		onclick?: () => void;
+		class?: ClassValue;
 	}
 
-	const { icon, hoverBgColor = 'gray' }: Props = $props();
+	const props: Props = $props();
+	const { icon, hoverBgColor = 'gray', onclick } = props;
 </script>
 
-<div
-	class={`icon-button icon-button-hover-bg-${hoverBgColor} flex h-10 w-10 cursor-pointer items-center justify-center rounded-full`}
+<button
+	class={`icon-button icon-button-hover-bg-${hoverBgColor} flex h-10 w-10 cursor-pointer items-center justify-center rounded-full ${props.class}`}
+	{onclick}
 >
 	<FontAwesomeIcon {icon} />
-</div>
+</button>
 
 <style>
 	.icon-button {
@@ -28,5 +33,9 @@
 
 	.icon-button-hover-bg-sky:hover {
 		background-color: --alpha(var(--color-sky-400) / 20%);
+	}
+
+	.icon-button-hover-bg-red:hover {
+		background-color: --alpha(var(--color-red-400) / 20%);
 	}
 </style>
