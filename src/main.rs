@@ -2,6 +2,7 @@ use std::{path::PathBuf, str::FromStr};
 
 use log::info;
 use tokio::net::TcpListener;
+use tower_http::trace::TraceLayer;
 use webdrop::{
     controllers::MainController,
     models::session::SessionId,
@@ -20,7 +21,7 @@ async fn main() {
     let repository = ConcreteServiceRepository::new(STORAGE_DIR);
     let service = SessionService::new(repository);
     let controller = MainController::new(service, object_service_factory);
-    let router = controller.into_router();
+    let router = controller.into_router().layer(TraceLayer::new_for_http());
 
     let listener = TcpListener::bind(LISTENER_ADDR).await.unwrap();
     let addr = listener.local_addr().unwrap();

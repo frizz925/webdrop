@@ -1,4 +1,4 @@
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
@@ -7,7 +7,6 @@ use axum::{
     Json, Router,
 };
 use log::error;
-use serde::Serialize;
 
 use crate::{
     models::{
@@ -17,10 +16,7 @@ use crate::{
     ConcreteSessionService, ObjectServiceFactory,
 };
 
-#[derive(Serialize)]
-struct HeadSessionResponse {
-    result: bool,
-}
+use super::StatusCodeError;
 
 pub struct ApiController {
     session: Arc<ConcreteSessionService>,
@@ -48,19 +44,22 @@ impl ApiController {
 async fn create_session(
     State(controller): State<Arc<ApiController>>,
 ) -> Result<Json<Session>, StatusCode> {
-    normalize_result(controller.session.create().await)
+    normalize_json_result("create session", controller.session.create().await)
 }
 
 async fn head_session(
     State(controller): State<Arc<ApiController>>,
     Path(sid): Path<SessionId>,
-) -> Result<Json<HeadSessionResponse>, StatusCode> {
+) -> Result<StatusCode, StatusCode> {
     normalize_result(
-        controller
-            .session
-            .exists(&sid)
-            .await
-            .map(|result| HeadSessionResponse { result }),
+        "head session",
+        controller.session.exists(&sid).await.map(|exists| {
+            if exists {
+                StatusCode::OK
+            } else {
+                StatusCode::NOT_FOUND
+            }
+        }),
     )
 }
 
@@ -68,7 +67,7 @@ async fn get_session(
     State(controller): State<Arc<ApiController>>,
     Path(sid): Path<SessionId>,
 ) -> Result<Json<Session>, StatusCode> {
-    normalize_result(controller.session.get(&sid).await)
+    normalize_json_result("get session", controller.session.get(&sid).await)
 }
 
 async fn create_object(
@@ -77,7 +76,7 @@ async fn create_object(
     Json(upload): Json<Upload>,
 ) -> Result<Json<ObjectResult>, StatusCode> {
     let service = (controller.object)(&sid);
-    normalize_result(service.put(upload).await)
+    normalize_json_result("create object", service.put(upload).await)
 }
 
 async fn get_object(
@@ -85,18 +84,26 @@ async fn get_object(
     Path((sid, oid)): Path<(SessionId, ObjectId)>,
 ) -> Result<Json<ObjectResult>, StatusCode> {
     let service = (controller.object)(&sid);
-    normalize_result(service.get(&oid).await)
+    normalize_json_result("get object", service.get(&oid).await)
 }
 
-fn normalize_result<T, E: Error>(res: Result<T, E>) -> Result<Json<T>, StatusCode> {
-    res.map_or_else(error_to_status, value_to_json)
+fn normalize_result<T, E: StatusCodeError>(
+    action: &'static str,
+    res: Result<T, E>,
+) -> Result<T, StatusCode> {
+    res.map_err(error_to_status(action))
 }
 
-fn value_to_json<T, E>(v: T) -> Result<Json<T>, E> {
-    Ok(Json(v))
+fn normalize_json_result<T, E: StatusCodeError>(
+    action: &'static str,
+    res: Result<T, E>,
+) -> Result<Json<T>, StatusCode> {
+    res.map(Json).map_err(error_to_status(action))
 }
 
-fn error_to_status<T, E: Error>(e: E) -> Result<T, StatusCode> {
-    error!("Failed to create session: {e}");
-    Err(StatusCode::INTERNAL_SERVER_ERROR)
+fn error_to_status<E: StatusCodeError>(action: &'static str) -> impl FnOnce(E) -> StatusCode {
+    move |e| {
+        error!("Failed to {action}: {e}");
+        e.into_status_code()
+    }
 }

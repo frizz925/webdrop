@@ -61,6 +61,7 @@ impl ObjectFsRepository {
         let result = ObjectResult::from_object(&obj, None);
         let mut sess = self.load_session().await?;
         sess.objects.push(obj);
+        sess.objects.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
         self.save_session(&sess).await?;
 
         Ok(result)
