@@ -13,3 +13,13 @@ export function sluggify(s: string): string {
 
 	return parts.join('-');
 }
+
+export function jsonRequest<T>(method: string, data: T): RequestInit {
+	return {
+		method,
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify(data)
+	};
+}

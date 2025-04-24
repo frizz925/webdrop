@@ -10,7 +10,9 @@ body {
 	}
 }
 
-div {
+div,
+button,
+input[type='text'] {
 	border-color: var(--color-gray-200);
 
 	@media (prefers-color-scheme: dark) {
@@ -20,15 +22,10 @@ div {
 
 input[type='text'] {
 	background-color: transparent;
-	border-color: var(--color-gray-200);
-
-	@media (prefers-color-scheme: dark) {
-		border-color: var(--color-slate-600);
-	}
 }
 
 .bg-color {
-	background-color: var(--color-white);
+	background-color: var(--color-gray-100);
 
 	@media (prefers-color-scheme: dark) {
 		background-color: var(--color-slate-800);

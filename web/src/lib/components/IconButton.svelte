@@ -6,17 +6,17 @@
 	interface Props {
 		icon: IconDefinition;
 		hoverBgColor?: string;
-		onclick?: () => void;
+		onClick?: () => void;
 		class?: ClassValue;
 	}
 
 	const props: Props = $props();
-	const { icon, hoverBgColor = 'gray', onclick } = props;
+	const { icon, hoverBgColor = 'gray', onClick } = props;
 </script>
 
 <button
 	class={`icon-button icon-button-hover-bg-${hoverBgColor} flex h-10 w-10 cursor-pointer items-center justify-center rounded-full ${props.class}`}
-	{onclick}
+	onclick={onClick}
 >
 	<FontAwesomeIcon {icon} />
 </button>
