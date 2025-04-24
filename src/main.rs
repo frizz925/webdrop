@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{env, path::PathBuf, str::FromStr};
 
 use log::info;
 use tokio::net::TcpListener;
@@ -23,7 +23,8 @@ async fn main() {
     let controller = MainController::new(service, object_service_factory);
     let router = controller.into_router().layer(TraceLayer::new_for_http());
 
-    let listener = TcpListener::bind(LISTENER_ADDR).await.unwrap();
+    let addr = env::var("LISTENER_ADDR").unwrap_or(LISTENER_ADDR.to_owned());
+    let listener = TcpListener::bind(addr).await.unwrap();
     let addr = listener.local_addr().unwrap();
     info!("Listening at {addr}");
 
