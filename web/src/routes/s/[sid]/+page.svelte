@@ -31,7 +31,9 @@
 	let sidShown = $state(false);
 </script>
 
-<div class="bg-color fixed top-0 left-0 flex h-12 w-full items-center justify-center border-b px-4">
+<div
+	class="bg-color fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-center border-b px-4"
+>
 	<button class="text-xl font-bold" onclick={() => window.scrollTo(0, 0)}>WebDrop</button>
 </div>
 <div class="mt-12">
