@@ -25,7 +25,7 @@ input[type='text'] {
 }
 
 .bg-color {
-	background-color: var(--color-gray-100);
+	background-color: var(--color-gray-50);
 
 	@media (prefers-color-scheme: dark) {
 		background-color: var(--color-slate-800);

@@ -69,7 +69,7 @@
 	button {
 		font-weight: var(--font-weight-semibold);
 		background-color: var(--color-gray-800);
-		color: var(--color-gray-100);
+		color: var(--color-gray-50);
 
 		@media (prefers-color-scheme: dark) {
 			background-color: var(--color-gray-100);
@@ -82,7 +82,10 @@
 	}
 
 	button:disabled {
-		background-color: var(--color-gray-500);
-		color: var(--color-gray-600);
+		background-color: var(--color-gray-300);
+
+		@media (prefers-color-scheme: dark) {
+			background-color: var(--color-gray-600);
+		}
 	}
 </style>
