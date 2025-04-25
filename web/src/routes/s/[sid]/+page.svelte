@@ -8,6 +8,7 @@
 	import QRCodeWindow from '$lib/components/QRCodeWindow.svelte';
 	import TextContent from '$lib/components/TextContent.svelte';
 	import type * as models from '$lib/models';
+	import type { NotificationEvent, NotificationHandlers, ObjectEvent } from '$lib/notification';
 	import { sluggify } from '$lib/utils';
 	import {
 		faClipboard,
@@ -17,6 +18,7 @@
 		faShare,
 		faTrash
 	} from '@fortawesome/free-solid-svg-icons';
+	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
 
 	const { sid } = page.params;
@@ -27,6 +29,8 @@
 	let sidShown = $state(false);
 	let qrcodeShown = $state(false);
 	let session = $state(data.session);
+
+	const objectIDs = new Set(session.objects.map((o) => o.id));
 
 	const getLink = () => window.location.toString();
 
@@ -49,20 +53,55 @@
 		qrcodeShown = true;
 	};
 
-	const newObject = (obj: models.FileObject) => {
+	const addObject = (obj: models.FileObject) => {
+		if (objectIDs.has(obj.id)) return;
+		objectIDs.add(obj.id);
 		session.objects.unshift(obj);
 	};
 
-	const deleteObject = (obj: models.FileObject) => {
-		session.objects = session.objects.filter((other) => other.id != obj.id);
+	const deleteObject = (oid: models.ObjectID) => {
+		if (!objectIDs.has(oid)) return;
+		objectIDs.delete(oid);
+		session.objects = session.objects.filter((other) => other.id != oid);
+	};
+
+	const exitSession = () => {
+		window.location.assign('/');
 	};
 
 	const deleteSession = async () => {
 		// TODO: Create confirmation dialog
 		await fetch(`/api/session/${sid}`, { method: 'DELETE' });
 		localStorage.removeItem(SID_KEY);
-		window.location.assign('/');
+		exitSession();
 	};
+
+	const notificationHandlers: NotificationHandlers = {
+		'object.created': async (evt: NotificationEvent) => {
+			const oid = (evt as ObjectEvent).objectID;
+			const res = await fetch(`/api/session/${sid}/${oid}`);
+			const obj = (await res.json()) as models.FileObject;
+			addObject(obj);
+		},
+		'object.deleted': (evt: NotificationEvent) => {
+			deleteObject((evt as ObjectEvent).objectID);
+		},
+		'session.deleted': exitSession
+	};
+
+	onMount(() => {
+		const url = new URL(window.location.href);
+		url.protocol = url.protocol.replace('http', 'ws');
+		url.pathname = `/ws/${sid}`;
+
+		const ws = new WebSocket(url);
+		ws.onmessage = ({ data }) => {
+			if (typeof data !== 'string') return;
+			const evt = JSON.parse(data as string) as NotificationEvent;
+			const handler = notificationHandlers[evt.name];
+			handler && handler(evt);
+		};
+	});
 </script>
 
 <div
@@ -100,7 +139,7 @@
 		</div>
 	</div>
 	<div class="border-b p-4">
-		<Form {sid} onSubmit={newObject} />
+		<Form {sid} onSubmit={addObject} />
 	</div>
 	<div>
 		{#each session.objects as obj (obj.id)}

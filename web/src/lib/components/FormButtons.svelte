@@ -21,7 +21,7 @@
 </script>
 
 <div class="flex items-center justify-start">
-	<div class="grow">{message}</div>
+	<div class="grow text-red-400">{message}</div>
 	<button
 		class="mr-2 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-red-400 text-gray-100"
 		onclick={() => (state = FormState.None)}

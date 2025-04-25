@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { FileObject, SessionID } from '$lib/models';
+	import type { FileObject, ObjectID, SessionID } from '$lib/models';
 	import { faTrash } from '@fortawesome/free-solid-svg-icons';
 	import { format, formatDistanceToNowStrict } from 'date-fns';
 	import { onMount } from 'svelte';
@@ -9,15 +9,15 @@
 		sid: SessionID;
 		object: FileObject;
 		children?: any;
-		onDelete?: (obj: FileObject) => void;
+		onDelete?: (oid: ObjectID) => void;
 	}
 
 	interface Props extends PartialProps {
 		children?: any;
 	}
 
-	const { sid, object: obj, children, onDelete }: Props = $props();
-	const { id, timestamp } = obj;
+	const { sid, object, children, onDelete }: Props = $props();
+	const { id, timestamp } = object;
 	const datetime = format(timestamp, 'yyyy-MM-dd HH:mm:ss');
 
 	let showTimestamp = $state(false);
@@ -32,7 +32,7 @@
 
 	const deleteObject = async () => {
 		await fetch(`/api/session/${sid}/${id}`, { method: 'DELETE' });
-		onDelete && onDelete(obj);
+		onDelete && onDelete(id);
 	};
 
 	onMount(() => {
