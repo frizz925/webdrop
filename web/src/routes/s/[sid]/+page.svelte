@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { SID_KEY } from '$lib';
 	import Form from '$lib/components/Form.svelte';
 	import IconButton from '$lib/components/IconButton.svelte';
 	import ImageContent from '$lib/components/ImageContent.svelte';
@@ -59,6 +60,7 @@
 	const deleteSession = async () => {
 		// TODO: Create confirmation dialog
 		await fetch(`/api/session/${sid}`, { method: 'DELETE' });
+		localStorage.removeItem(SID_KEY);
 		window.location.assign('/');
 	};
 </script>
