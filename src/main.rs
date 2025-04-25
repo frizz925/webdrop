@@ -1,8 +1,8 @@
 use std::{env, path::PathBuf, str::FromStr};
 
-use log::info;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
+use tracing::{event, Level};
 use webdrop::{
     controllers::MainController,
     models::session::SessionId,
@@ -26,7 +26,7 @@ async fn main() {
     let addr = env::var("LISTENER_ADDR").unwrap_or(LISTENER_ADDR.to_owned());
     let listener = TcpListener::bind(addr).await.unwrap();
     let addr = listener.local_addr().unwrap();
-    info!("Listening at {addr}");
+    event!(Level::INFO, "Listening at {addr}");
 
     axum::serve(listener, router).await.unwrap();
 }

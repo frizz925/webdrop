@@ -15,8 +15,8 @@ use axum::{
     Json, Router,
 };
 use futures::TryStreamExt;
-use log::error;
 use tokio_util::io::{ReaderStream, StreamReader};
+use tracing::{event, Level};
 
 use crate::{
     models::{
@@ -77,7 +77,7 @@ async fn upload_handler(
     let service = (controller.service)(&sid);
     let result = do_multi_upload(service, multipart).await.map_err(|err| {
         if let Some(e) = err.downcast_ref::<MultipartError>() {
-            error!("Multipart error: {e}");
+            event!(Level::ERROR, "Multipart error: {e}");
             StatusCode::BAD_REQUEST
         } else {
             StatusCode::INTERNAL_SERVER_ERROR

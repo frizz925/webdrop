@@ -6,6 +6,7 @@ pub mod controllers;
 pub mod models;
 pub mod repositories;
 pub mod services;
+pub mod utils;
 
 pub type ConcreteServiceRepository = SessionFsRepository;
 pub type ConcreteSessionService = SessionService<ConcreteServiceRepository>;

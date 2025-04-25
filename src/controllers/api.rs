@@ -6,7 +6,7 @@ use axum::{
     routing::{get, head, post},
     Json, Router,
 };
-use log::error;
+use tracing::{event, Level};
 
 use crate::{
     models::{
@@ -134,7 +134,7 @@ fn normalize_json_result<T, E: StatusCodeError>(
 
 fn error_to_status<E: StatusCodeError>(action: &'static str) -> impl FnOnce(E) -> StatusCode {
     move |e| {
-        error!("Failed to {action}: {e}");
+        event!(Level::ERROR, "Failed to {action}: {e}");
         e.into_status_code()
     }
 }

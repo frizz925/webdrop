@@ -1,6 +1,7 @@
 mod api;
 mod main;
 mod object;
+mod websocket;
 
 use std::error::Error;
 
