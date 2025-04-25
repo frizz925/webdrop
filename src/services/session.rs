@@ -50,6 +50,10 @@ impl<R: SessionRepository> SessionService<R> {
     pub async fn exists(&self, sid: &SessionId) -> Result<bool> {
         normalize_result(self.repository.exists(sid).await)
     }
+
+    pub async fn delete(&self, sid: &SessionId) -> Result<()> {
+        normalize_result(self.repository.delete(sid).await)
+    }
 }
 
 fn normalize_result<T>(res: StdResult<T, Box<dyn StdError>>) -> Result<T> {

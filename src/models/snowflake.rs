@@ -19,16 +19,13 @@ pub struct SnowflakeId(SnowflakeBytes);
 impl SnowflakeId {
     pub fn generate() -> Result<Self, SystemTimeError> {
         let mut sid = Self::default();
-
         let session_epoch = UNIX_EPOCH
             .checked_add(Duration::from_secs(SESSION_EPOCH_SECONDS))
             .unwrap();
         let timestamp = (session_epoch.elapsed()?.as_millis() as u64).to_be_bytes();
         sid.0[..6].copy_from_slice(&timestamp[2..]);
-
         let mut rng = SmallRng::from_os_rng();
         rng.fill_bytes(&mut sid.0[6..]);
-
         Ok(sid)
     }
 

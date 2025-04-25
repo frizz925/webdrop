@@ -34,9 +34,15 @@ impl ApiController {
             .route("/session", post(create_session))
             .route(
                 "/session/{sid}",
-                head(head_session).get(get_session).post(create_object),
+                head(head_session)
+                    .get(get_session)
+                    .delete(delete_session)
+                    .post(create_object),
             )
-            .route("/session/{sid}/{oid}", get(get_object))
+            .route(
+                "/session/{sid}/{oid}",
+                get(get_object).delete(delete_object),
+            )
             .with_state(state)
     }
 }
@@ -70,6 +76,20 @@ async fn get_session(
     normalize_json_result("get session", controller.session.get(&sid).await)
 }
 
+async fn delete_session(
+    State(controller): State<Arc<ApiController>>,
+    Path(sid): Path<SessionId>,
+) -> Result<StatusCode, StatusCode> {
+    normalize_result(
+        "get session",
+        controller
+            .session
+            .delete(&sid)
+            .await
+            .map(|_| StatusCode::NO_CONTENT),
+    )
+}
+
 async fn create_object(
     State(controller): State<Arc<ApiController>>,
     Path(sid): Path<SessionId>,
@@ -85,6 +105,17 @@ async fn get_object(
 ) -> Result<Json<ObjectResult>, StatusCode> {
     let service = (controller.object)(&sid);
     normalize_json_result("get object", service.get(&oid).await)
+}
+
+async fn delete_object(
+    State(controller): State<Arc<ApiController>>,
+    Path((sid, oid)): Path<(SessionId, ObjectId)>,
+) -> Result<StatusCode, StatusCode> {
+    let service = (controller.object)(&sid);
+    normalize_result(
+        "delete object",
+        service.delete(&oid).await.map(|_| StatusCode::NO_CONTENT),
+    )
 }
 
 fn normalize_result<T, E: StatusCodeError>(

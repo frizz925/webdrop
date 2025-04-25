@@ -84,6 +84,11 @@ impl SessionRepository for SessionFsRepository {
             Err(e) => Err(Box::new(e)),
         }
     }
+
+    async fn delete(&self, sid: &SessionId) -> Result<()> {
+        fs::remove_dir_all(self.session_dir_path(sid)).await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

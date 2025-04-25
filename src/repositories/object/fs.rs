@@ -123,6 +123,22 @@ impl ObjectRepository for ObjectFsRepository {
         let file = fs::File::open(path).await?;
         Ok(Box::new(file))
     }
+
+    async fn delete(&self, oid: &ObjectId) -> Result<()> {
+        let path = self.object_file_path(oid);
+        if let Err(e) = fs::remove_file(path).await {
+            if e.kind() != ErrorKind::NotFound {
+                return Err(Box::new(e));
+            }
+        }
+        fs::remove_file(self.object_metadata_path(oid)).await?;
+
+        let mut sess = self.load_session().await?;
+        sess.objects = sess.objects.into_iter().filter(|o| &o.id != oid).collect();
+        self.save_session(&sess).await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

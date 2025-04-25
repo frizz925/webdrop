@@ -24,4 +24,6 @@ pub trait ObjectRepository {
         oid: &ObjectId,
         name: &str,
     ) -> impl Future<Output = Result<Box<dyn AsyncRead + Unpin + Send + Sync>>>;
+
+    fn delete(&self, oid: &ObjectId) -> impl Future<Output = Result<()>>;
 }

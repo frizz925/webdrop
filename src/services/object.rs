@@ -63,6 +63,10 @@ impl<R: ObjectRepository> ObjectService<R> {
     ) -> Result<Box<dyn AsyncRead + Unpin + Send + Sync>> {
         normalize_result(self.repository.download(oid, name).await)
     }
+
+    pub async fn delete(&self, oid: &ObjectId) -> Result<()> {
+        normalize_result(self.repository.delete(oid).await)
+    }
 }
 
 fn normalize_result<T>(res: StdResult<T, Box<dyn StdError>>) -> Result<T> {

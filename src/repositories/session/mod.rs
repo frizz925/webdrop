@@ -16,4 +16,6 @@ pub trait SessionRepository {
     fn get(&self, sid: &SessionId) -> impl Future<Output = Result<Session>>;
 
     fn exists(&self, sid: &SessionId) -> impl Future<Output = Result<bool>>;
+
+    fn delete(&self, sid: &SessionId) -> impl Future<Output = Result<()>>;
 }
