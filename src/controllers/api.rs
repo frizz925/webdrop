@@ -10,7 +10,7 @@ use log::error;
 
 use crate::{
     models::{
-        object::{ObjectId, ObjectResult, Upload},
+        object::{Object, ObjectId, Upload},
         session::{Session, SessionId},
     },
     ConcreteSessionService, ObjectServiceFactory,
@@ -94,7 +94,7 @@ async fn create_object(
     State(controller): State<Arc<ApiController>>,
     Path(sid): Path<SessionId>,
     Json(upload): Json<Upload>,
-) -> Result<Json<ObjectResult>, StatusCode> {
+) -> Result<Json<Object>, StatusCode> {
     let service = (controller.object)(&sid);
     normalize_json_result("create object", service.put(upload).await)
 }
@@ -102,7 +102,7 @@ async fn create_object(
 async fn get_object(
     State(controller): State<Arc<ApiController>>,
     Path((sid, oid)): Path<(SessionId, ObjectId)>,
-) -> Result<Json<ObjectResult>, StatusCode> {
+) -> Result<Json<Object>, StatusCode> {
     let service = (controller.object)(&sid);
     normalize_json_result("get object", service.get(&oid).await)
 }

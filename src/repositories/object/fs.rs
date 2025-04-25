@@ -10,7 +10,7 @@ use tokio::{
 
 use crate::{
     models::{
-        object::{Object, ObjectId, ObjectResult, Upload},
+        object::{Object, ObjectId, Upload},
         session::Session,
     },
     repositories::{Result, SESSION_FILE},
@@ -50,7 +50,7 @@ impl ObjectFsRepository {
         Ok(obj)
     }
 
-    async fn put_object(&self, obj: Object) -> Result<ObjectResult> {
+    async fn put_object(&self, obj: Object) -> Result<Object> {
         let oid = &obj.id;
 
         let path = self.object_metadata_path(oid);
@@ -58,13 +58,12 @@ impl ObjectFsRepository {
         let json = serde_json::to_string(&obj)?;
         file.write_all(json.as_bytes()).await?;
 
-        let result = ObjectResult::from_object(&obj);
         let mut sess = self.load_session().await?;
-        sess.objects.push(obj);
+        sess.objects.push(obj.clone());
         sess.objects.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
         self.save_session(&sess).await?;
 
-        Ok(result)
+        Ok(obj)
     }
 
     async fn load_session(&self) -> Result<Session> {
@@ -86,14 +85,14 @@ impl ObjectFsRepository {
 }
 
 impl ObjectRepository for ObjectFsRepository {
-    async fn put(&self, upload: Upload) -> Result<ObjectResult> {
+    async fn put(&self, upload: Upload) -> Result<Object> {
         let obj: Object = upload.try_into()?;
         self.put_object(obj).await
     }
 
-    async fn upload<R>(&self, upload: Upload, mut reader: R) -> Result<ObjectResult>
+    async fn upload<R>(&self, upload: Upload, mut reader: R) -> Result<Object>
     where
-        R: AsyncRead + Send + Unpin + 'static,
+        R: AsyncRead + Send + Unpin,
     {
         let obj: Object = upload.try_into()?;
         {
@@ -104,9 +103,8 @@ impl ObjectRepository for ObjectFsRepository {
         self.put_object(obj).await
     }
 
-    async fn get(&self, oid: &ObjectId) -> Result<ObjectResult> {
-        let obj = self.get_object(oid).await?;
-        Ok(ObjectResult::from_object(&obj))
+    async fn get(&self, oid: &ObjectId) -> Result<Object> {
+        Ok(self.get_object(oid).await?)
     }
 
     async fn download(

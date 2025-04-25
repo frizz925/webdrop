@@ -8,51 +8,51 @@ use std::{
 use tokio::io::AsyncRead;
 
 use crate::{
-    models::object::{ObjectId, ObjectResult, Upload},
+    models::object::{Object, ObjectId, Upload},
     repositories::object::ObjectRepository,
 };
 
 #[derive(Debug)]
-pub enum Error {
-    ObjectNotFound,
+pub enum ObjectError {
+    NotFound,
     Other(Box<dyn StdError>),
 }
 
-impl Display for Error {
+impl Display for ObjectError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            Self::ObjectNotFound => "Object not found".to_owned(),
+            Self::NotFound => "Object not found".to_owned(),
             Self::Other(e) => e.to_string(),
         };
         f.write_str(&s)
     }
 }
 
-impl StdError for Error {}
+impl StdError for ObjectError {}
 
-pub type Result<T> = StdResult<T, Error>;
+pub type Result<T> = StdResult<T, ObjectError>;
 
 pub struct ObjectService<R> {
     repository: R,
 }
 
-impl<R: ObjectRepository> ObjectService<R> {
-    pub fn new(repository: R) -> Self {
+impl<S: ObjectRepository> ObjectService<S> {
+    pub fn new(repository: S) -> Self {
         Self { repository }
     }
 
-    pub async fn put(&self, upload: Upload) -> Result<ObjectResult> {
+    pub async fn put(&self, upload: Upload) -> Result<Object> {
         normalize_result(self.repository.put(upload).await)
     }
 
-    pub async fn upload(&self, upload: Upload, reader: R) -> Result<ObjectResult>
+    pub async fn upload<R>(&self, upload: Upload, reader: R) -> Result<Object>
     where
-        R: AsyncRead + Unpin + Send + Sync + 'static,
+        R: AsyncRead + Unpin + Send + Sync,
     {
         normalize_result(self.repository.upload(upload, reader).await)
     }
 
-    pub async fn get(&self, oid: &ObjectId) -> Result<ObjectResult> {
+    pub async fn get(&self, oid: &ObjectId) -> Result<Object> {
         normalize_result(self.repository.get(oid).await)
     }
 
@@ -73,11 +73,11 @@ fn normalize_result<T>(res: StdResult<T, Box<dyn StdError>>) -> Result<T> {
     res.map_err(normalize_error)
 }
 
-fn normalize_error(err: Box<dyn StdError>) -> Error {
+fn normalize_error(err: Box<dyn StdError>) -> ObjectError {
     if let Some(e) = err.downcast_ref::<IoError>() {
         if e.kind() == ErrorKind::NotFound {
-            return Error::ObjectNotFound;
+            return ObjectError::NotFound;
         }
     }
-    Error::Other(err)
+    ObjectError::Other(err)
 }

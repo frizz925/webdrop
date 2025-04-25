@@ -1,4 +1,4 @@
-use std::{str::FromStr, time::SystemTimeError};
+use std::time::SystemTimeError;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -8,29 +8,32 @@ use super::snowflake::SnowflakeId;
 
 pub type ObjectId = SnowflakeId;
 
-struct UnknownKindError;
+pub struct UnknownKindError;
 
-#[derive(Deserialize)]
-enum Kind {
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ContentKind {
     File,
 }
 
-impl FromStr for Kind {
-    type Err = UnknownKindError;
+pub trait Content: Serialize {}
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "file" => Ok(Self::File),
-            _ => Err(UnknownKindError),
+#[derive(Serialize, Deserialize)]
+pub struct FileContent {
+    pub kind: ContentKind,
+    pub name: String,
+}
+
+impl FileContent {
+    pub fn new(name: String) -> Self {
+        Self {
+            kind: ContentKind::File,
+            name,
         }
     }
 }
 
-#[derive(Deserialize)]
-struct FileContent {
-    kind: Kind,
-    name: String,
-}
+impl Content for FileContent {}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Object {
@@ -45,29 +48,10 @@ impl Object {
         let json = self.content.to_owned();
         if let Ok(content) = serde_json::from_value::<FileContent>(json) {
             match content.kind {
-                Kind::File => return Some(content.name),
+                ContentKind::File => return Some(content.name),
             }
         }
         None
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct ObjectResult {
-    pub id: ObjectId,
-    pub mime: String,
-    pub timestamp: DateTime<Utc>,
-    pub content: Value,
-}
-
-impl ObjectResult {
-    pub fn from_object(obj: &Object) -> Self {
-        Self {
-            id: obj.id,
-            mime: obj.mime.clone(),
-            timestamp: obj.timestamp,
-            content: obj.content.clone(),
-        }
     }
 }
 
@@ -75,6 +59,15 @@ impl ObjectResult {
 pub struct Upload {
     pub mime: String,
     pub content: Value,
+}
+
+impl Upload {
+    pub fn new<C: Content>(mime: String, content: C) -> Self {
+        Self {
+            mime,
+            content: serde_json::to_value(content).unwrap(),
+        }
+    }
 }
 
 impl TryInto<Object> for Upload {

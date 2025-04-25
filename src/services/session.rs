@@ -11,24 +11,24 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub enum Error {
-    SessionNotFound,
+pub enum SessionError {
+    NotFound,
     Other(Box<dyn StdError>),
 }
 
-impl Display for Error {
+impl Display for SessionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            Self::SessionNotFound => "Session not found".to_owned(),
+            Self::NotFound => "Session not found".to_owned(),
             Self::Other(e) => e.to_string(),
         };
         f.write_str(&s)
     }
 }
 
-impl StdError for Error {}
+impl StdError for SessionError {}
 
-pub type Result<T> = StdResult<T, Error>;
+pub type Result<T> = StdResult<T, SessionError>;
 
 pub struct SessionService<R> {
     repository: R,
@@ -60,11 +60,11 @@ fn normalize_result<T>(res: StdResult<T, Box<dyn StdError>>) -> Result<T> {
     res.map_err(normalize_error)
 }
 
-fn normalize_error(err: Box<dyn StdError>) -> Error {
+fn normalize_error(err: Box<dyn StdError>) -> SessionError {
     if let Some(e) = err.downcast_ref::<IoError>() {
         if e.kind() == ErrorKind::NotFound {
-            return Error::SessionNotFound;
+            return SessionError::NotFound;
         }
     }
-    Error::Other(err)
+    SessionError::Other(err)
 }
