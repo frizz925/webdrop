@@ -115,11 +115,8 @@
 	const uploadFile = async (file: File) => {
 		const data = new FormData();
 		data.append('file', file, file.name);
-		const res = await fetch(`/object/${sid}`, {
+		const res = await fetch(`/objects/${sid}`, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'multipart/form-data'
-			},
 			body: data
 		});
 		if (res.status >= 400) {

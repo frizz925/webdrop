@@ -1,6 +1,8 @@
+import type { FileContent, FileObject, SessionID } from './models';
+
 const SLUG_PART_LENGTH = 4;
 
-export function sluggify(s: string): string {
+export const sluggify = (s: string) => {
 	const parts = [];
 
 	let idx = 0;
@@ -12,14 +14,16 @@ export function sluggify(s: string): string {
 	parts.push(s.substring(idx));
 
 	return parts.join('-');
-}
+};
 
-export function jsonRequest<T>(method: string, data: T): RequestInit {
-	return {
+export const jsonRequest = <T>(method: string, data: T) =>
+	({
 		method,
 		headers: {
 			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify(data)
-	};
-}
+	}) as RequestInit;
+
+export const getFileUrl = (sid: SessionID, obj: FileObject, content: FileContent) =>
+	`/objects/${sid}/${obj.id}/${content.name}`;

@@ -1,7 +1,9 @@
 <script lang="ts">
 	import type { FileObject, SessionID } from '$lib/models';
+	import { faTrash } from '@fortawesome/free-solid-svg-icons';
 	import { format, formatDistanceToNowStrict } from 'date-fns';
 	import { onMount } from 'svelte';
+	import IconButton from './IconButton.svelte';
 
 	export interface PartialProps {
 		sid: SessionID;
@@ -42,7 +44,7 @@
 
 <div class="border-b">
 	{@render children()}
-	<div class="text-sub flex items-center justify-start p-4 text-sm">
+	<div class="text-sub flex items-center justify-start px-4 py-2 text-sm">
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="grow">
 			<div
@@ -58,6 +60,8 @@
 				</span>
 			</div>
 		</div>
-		<button class="block cursor-pointer text-red-500" onclick={deleteObject}>Delete</button>
+		<div class="block cursor-pointer text-red-400 dark:text-red-800">
+			<IconButton icon={faTrash} size="xs" onClick={deleteObject} />
+		</div>
 	</div>
 </div>

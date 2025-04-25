@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import Form from '$lib/components/Form.svelte';
 	import IconButton from '$lib/components/IconButton.svelte';
+	import ImageContent from '$lib/components/ImageContent.svelte';
 	import LinkContent from '$lib/components/LinkContent.svelte';
 	import QRCodeWindow from '$lib/components/QRCodeWindow.svelte';
 	import TextContent from '$lib/components/TextContent.svelte';
@@ -63,11 +64,11 @@
 </script>
 
 <div
-	class="bg-color fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-center border-b px-4"
+	class="fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-center border-b bg-white px-4 dark:bg-slate-800"
 >
 	<button class="cursor-pointer text-xl font-bold" onclick={returnToTop}>WebDrop</button>
 </div>
-<div class="mt-12">
+<div class="mt-12 bg-white dark:bg-slate-800">
 	<div class="flex items-center justify-start border-b py-1 pr-2 pl-4">
 		<div class="flex grow items-center justify-start">
 			<div class="mr-2">
@@ -92,7 +93,7 @@
 			<IconButton icon={faQrcode} size="xs" onClick={showQrcode} />
 			<IconButton icon={faShare} size="xs" onClick={shareLink} />
 		</div>
-		<div class="text-red-500">
+		<div class="text-red-400 dark:text-red-800">
 			<IconButton icon={faTrash} size="xs" hoverBgColor="red" onClick={deleteSession} />
 		</div>
 	</div>
@@ -115,6 +116,23 @@
 					content={obj.content as models.LinkContent}
 					onDelete={deleteObject}
 				/>
+			{:else if obj.content.kind === 'file'}
+				{#if obj.mime.startsWith('image/')}
+					<ImageContent
+						{sid}
+						object={obj}
+						content={obj.content as models.FileContent}
+						onDelete={deleteObject}
+					/>
+				{:else}
+					<LinkContent
+						{sid}
+						object={obj}
+						content={obj.content as models.FileContent}
+						onDelete={deleteObject}
+						download
+					/>
+				{/if}
 			{/if}
 		{/each}
 	</div>

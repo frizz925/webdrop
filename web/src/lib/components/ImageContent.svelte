@@ -1,14 +1,16 @@
 <script lang="ts">
+	import type { FileContent } from '$lib/models';
+	import { getFileUrl } from '$lib/utils';
 	import Content, { type PartialProps } from './Content.svelte';
 
 	interface Props extends PartialProps {
-		src: string;
-		name?: string;
+		content: FileContent;
 	}
 
-	const { sid, object, src, name, onDelete }: Props = $props();
+	const { sid, object: obj, content, onDelete }: Props = $props();
+	const src = getFileUrl(sid, obj, content);
 </script>
 
-<Content {sid} {object} {onDelete}>
-	<img {src} alt={name} class="w-full" />
+<Content {sid} object={obj} {onDelete}>
+	<img {src} alt={content.name} class="w-full" />
 </Content>
