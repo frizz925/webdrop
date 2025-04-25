@@ -27,7 +27,7 @@ impl MainController {
         Router::new()
             .nest("/api", api.into_router())
             .nest("/objects", object.into_router())
-            .route_service("/{sid}", ServeFile::new(index))
+            .route_service("/s/{sid}", ServeFile::new(index))
             .fallback_service(ServeDir::new(PUBLIC_PATH))
     }
 }
