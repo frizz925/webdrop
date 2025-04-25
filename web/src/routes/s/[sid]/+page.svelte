@@ -64,11 +64,11 @@
 </script>
 
 <div
-	class="fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-center border-b bg-white px-4 dark:bg-slate-800"
+	class="fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-center border-b bg-white px-4 dark:bg-gray-800"
 >
 	<button class="cursor-pointer text-xl font-bold" onclick={returnToTop}>WebDrop</button>
 </div>
-<div class="mt-12 bg-white dark:bg-slate-800">
+<div class="mt-12 bg-white dark:bg-gray-800">
 	<div class="flex items-center justify-start border-b py-1 pr-2 pl-4">
 		<div class="flex grow items-center justify-start">
 			<div class="mr-2">
