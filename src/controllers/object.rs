@@ -35,12 +35,12 @@ const SIZE_GIB: usize = 1024 * SIZE_MIB;
 const BODY_LIMIT: usize = 2 * SIZE_GIB;
 
 pub struct ObjectController {
-    service: ObjectServiceFactory,
+    factory: ObjectServiceFactory,
 }
 
 impl ObjectController {
-    pub fn new(service: ObjectServiceFactory) -> Self {
-        Self { service }
+    pub fn new(factory: ObjectServiceFactory) -> Self {
+        Self { factory }
     }
 
     pub fn into_router(self) -> Router {
@@ -52,11 +52,12 @@ impl ObjectController {
             .layer(DefaultBodyLimit::max(BODY_LIMIT))
     }
 }
+
 async fn download_handler(
     State(controller): State<Arc<ObjectController>>,
     Path((sid, oid, name)): Path<(SessionId, ObjectId, String)>,
 ) -> Result<Body, (StatusCode, String)> {
-    let service = (controller.service)(&sid);
+    let service = (controller.factory)(&sid);
     match service.download(&oid, &name).await {
         Ok(reader) => Ok(Body::from_stream(ReaderStream::new(reader))),
         Err(e) => {
@@ -74,7 +75,7 @@ async fn upload_handler(
     Path(sid): Path<SessionId>,
     multipart: Multipart,
 ) -> Result<Json<Object>, StatusCode> {
-    let service = (controller.service)(&sid);
+    let service = (controller.factory)(&sid);
     let result = do_multi_upload(service, multipart).await.map_err(|err| {
         if let Some(e) = err.downcast_ref::<MultipartError>() {
             event!(Level::ERROR, "Multipart error: {e}");
@@ -91,7 +92,7 @@ async fn upload_handler(
 }
 
 async fn do_multi_upload<R: ObjectRepository>(
-    service: ObjectService<R>,
+    service: Arc<ObjectService<R>>,
     mut multipart: Multipart,
 ) -> Result<Option<Object>, Box<dyn Error>> {
     while let Some(field) = multipart.next_field().await? {

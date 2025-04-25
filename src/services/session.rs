@@ -6,8 +6,13 @@ use std::{
 };
 
 use crate::{
-    models::session::{Session, SessionId},
+    models::{
+        event::Event,
+        session::{Session, SessionId},
+    },
+    registries::{OBJECT_SERVICES, WEBSOCKET_SERVICES},
     repositories::session::SessionRepository,
+    WebSocketServiceFactory,
 };
 
 #[derive(Debug)]
@@ -32,11 +37,15 @@ pub type Result<T> = StdResult<T, SessionError>;
 
 pub struct SessionService<R> {
     repository: R,
+    websocket: WebSocketServiceFactory,
 }
 
 impl<R: SessionRepository> SessionService<R> {
-    pub fn new(repository: R) -> Self {
-        Self { repository }
+    pub fn new(repository: R, websocket: WebSocketServiceFactory) -> Self {
+        Self {
+            repository,
+            websocket,
+        }
     }
 
     pub async fn create(&self) -> Result<Session> {
@@ -52,7 +61,12 @@ impl<R: SessionRepository> SessionService<R> {
     }
 
     pub async fn delete(&self, sid: &SessionId) -> Result<()> {
-        normalize_result(self.repository.delete(sid).await)
+        normalize_result(self.repository.delete(sid).await.map(|_| {
+            let service = (self.websocket)(sid);
+            service.dispatch(Event::SessionDeleted);
+            OBJECT_SERVICES.write().unwrap().remove(sid);
+            WEBSOCKET_SERVICES.write().unwrap().remove(sid);
+        }))
     }
 }
 

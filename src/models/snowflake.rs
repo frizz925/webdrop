@@ -13,7 +13,7 @@ const SESSION_EPOCH_SECONDS: u64 = 1717340400;
 type SnowflakeBytes = [u8; 8];
 
 // First 48-bit is timestamp, then the rest is random bytes
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct SnowflakeId(SnowflakeBytes);
 
 impl SnowflakeId {

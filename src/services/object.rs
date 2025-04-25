@@ -3,14 +3,20 @@ use std::{
     fmt::Display,
     io::{Error as IoError, ErrorKind},
     result::Result as StdResult,
+    sync::Arc,
 };
 
 use tokio::io::AsyncRead;
 
 use crate::{
-    models::object::{Object, ObjectId, Upload},
+    models::{
+        event::Event,
+        object::{Object, ObjectId, Upload},
+    },
     repositories::object::ObjectRepository,
 };
+
+use super::websocket::WebSocketService;
 
 #[derive(Debug)]
 pub enum ObjectError {
@@ -34,22 +40,32 @@ pub type Result<T> = StdResult<T, ObjectError>;
 
 pub struct ObjectService<R> {
     repository: R,
+    websocket: Arc<WebSocketService>,
 }
 
 impl<S: ObjectRepository> ObjectService<S> {
-    pub fn new(repository: S) -> Self {
-        Self { repository }
+    pub fn new(repository: S, websocket: Arc<WebSocketService>) -> Self {
+        Self {
+            repository,
+            websocket,
+        }
     }
 
     pub async fn put(&self, upload: Upload) -> Result<Object> {
-        normalize_result(self.repository.put(upload).await)
+        normalize_result(self.repository.put(upload).await.map(|obj| {
+            self.websocket.dispatch(Event::ObjectCreated(obj.id));
+            obj
+        }))
     }
 
     pub async fn upload<R>(&self, upload: Upload, reader: R) -> Result<Object>
     where
         R: AsyncRead + Unpin + Send + Sync,
     {
-        normalize_result(self.repository.upload(upload, reader).await)
+        normalize_result(self.repository.upload(upload, reader).await.map(|obj| {
+            self.websocket.dispatch(Event::ObjectCreated(obj.id));
+            obj
+        }))
     }
 
     pub async fn get(&self, oid: &ObjectId) -> Result<Object> {
@@ -65,7 +81,9 @@ impl<S: ObjectRepository> ObjectService<S> {
     }
 
     pub async fn delete(&self, oid: &ObjectId) -> Result<()> {
-        normalize_result(self.repository.delete(oid).await)
+        normalize_result(self.repository.delete(oid).await.map(|_| {
+            self.websocket.dispatch(Event::ObjectDeleted(*oid));
+        }))
     }
 }
 
