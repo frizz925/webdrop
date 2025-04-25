@@ -7,8 +7,14 @@
 	import TextContent from '$lib/components/TextContent.svelte';
 	import type * as models from '$lib/models';
 	import { sluggify } from '$lib/utils';
-	import { faClipboard } from '@fortawesome/free-regular-svg-icons';
-	import { faEye, faEyeSlash, faQrcode, faShare } from '@fortawesome/free-solid-svg-icons';
+	import {
+		faClipboard,
+		faEye,
+		faEyeSlash,
+		faQrcode,
+		faShare,
+		faTrash
+	} from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
 
 	const { sid } = page.params;
@@ -41,8 +47,18 @@
 		qrcodeShown = true;
 	};
 
-	const newObject = (obj: models.FileObject<models.Content>) => {
+	const newObject = (obj: models.FileObject) => {
 		session.objects.unshift(obj);
+	};
+
+	const deleteObject = (obj: models.FileObject) => {
+		session.objects = session.objects.filter((other) => other.id != obj.id);
+	};
+
+	const deleteSession = async () => {
+		// TODO: Create confirmation dialog
+		await fetch(`/api/session/${sid}`, { method: 'DELETE' });
+		window.location.assign('/');
 	};
 </script>
 
@@ -65,16 +81,19 @@
 		</div>
 		<div class="text-sub flex items-center justify-start">
 			<div class:hidden={sidShown}>
-				<IconButton icon={faEye} onClick={() => (sidShown = true)} />
+				<IconButton icon={faEye} size="xs" onClick={() => (sidShown = true)} />
 			</div>
 			<div class:hidden={!sidShown}>
-				<IconButton icon={faEyeSlash} onClick={() => (sidShown = false)} />
+				<IconButton icon={faEyeSlash} size="xs" onClick={() => (sidShown = false)} />
 			</div>
-			<IconButton icon={faClipboard} onClick={copySlug} />
+			<IconButton icon={faClipboard} size="xs" onClick={copySlug} />
 		</div>
 		<div class="text-sub hidden items-center justify-start sm:flex">
-			<IconButton icon={faQrcode} onClick={showQrcode} />
-			<IconButton icon={faShare} onClick={shareLink} />
+			<IconButton icon={faQrcode} size="xs" onClick={showQrcode} />
+			<IconButton icon={faShare} size="xs" onClick={shareLink} />
+		</div>
+		<div class="text-red-500">
+			<IconButton icon={faTrash} size="xs" hoverBgColor="red" onClick={deleteSession} />
 		</div>
 	</div>
 	<div class="border-b p-4">
@@ -83,9 +102,19 @@
 	<div>
 		{#each session.objects as obj (obj.id)}
 			{#if obj.content.kind === 'text'}
-				<TextContent content={obj.content as models.TextContent} timestamp={obj.timestamp} />
+				<TextContent
+					{sid}
+					object={obj}
+					content={obj.content as models.TextContent}
+					onDelete={deleteObject}
+				/>
 			{:else if obj.content.kind === 'link'}
-				<LinkContent content={obj.content as models.LinkContent} timestamp={obj.timestamp} />
+				<LinkContent
+					{sid}
+					object={obj}
+					content={obj.content as models.LinkContent}
+					onDelete={deleteObject}
+				/>
 			{/if}
 		{/each}
 	</div>

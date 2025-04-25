@@ -16,7 +16,7 @@
 
 	interface Props {
 		sid: string;
-		onSubmit: (obj: models.FileObject<models.Content>) => void;
+		onSubmit: (obj: models.FileObject) => void;
 	}
 
 	interface State {
@@ -62,7 +62,8 @@
 
 	const changeState = (newState: FormState) => () => (state.form = newState);
 
-	const uploadFiles = (nextState: FormState) => () => {
+	const selectFiles = (nextState: FormState) => () => {
+		fileInput.value = '';
 		fileInput.accept = acceptMap[nextState];
 		fileInput.onchange = (evt) => {
 			const el = evt.target as HTMLInputElement;
@@ -89,11 +90,13 @@
 	const submit = async <C extends models.Content>(mime: string, content: C) => {
 		const upload: models.Upload<C> = { mime, content };
 		const res = await fetch(`/api/session/${sid}`, jsonRequest('POST', upload));
-		if (res.status < 400) {
-			const dto: models.FileObjectDto<C> = await res.json();
-			resetState();
-			onSubmit(models.objectFromDto(dto));
-		} else state.message = 'Failed to send';
+		if (res.status >= 400) {
+			state.message = 'Failed to send';
+			throw res;
+		}
+		const dto: models.FileObjectDto<C> = await res.json();
+		resetState();
+		onSubmit(models.objectFromDto(dto));
 	};
 
 	const submitText = async () =>
@@ -108,19 +111,46 @@
 			url: state.url.value,
 			title: state.url.title
 		});
+
+	const uploadFile = async (file: File) => {
+		const data = new FormData();
+		data.append('file', file, file.name);
+		const res = await fetch(`/object/${sid}`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'multipart/form-data'
+			},
+			body: data
+		});
+		if (res.status >= 400) {
+			state.message = 'Failed to upload';
+			throw res;
+		}
+		const dto: models.FileObjectDto<models.FileContent> = await res.json();
+		onSubmit(models.objectFromDto(dto));
+	};
+
+	const uploadFiles = async () => {
+		const files = state.files;
+		if (files.length <= 0) return;
+		await Promise.all(files.map(uploadFile));
+		resetState();
+	};
 </script>
 
 <input type="file" class="hidden" multiple bind:this={fileInput} />
 <div
-	class="text-accent -ml-2 flex justify-center text-lg"
+	class="text-accent flex items-center justify-center text-lg"
 	class:hidden={state.form !== FormState.None}
 >
-	<IconButton hoverBgColor="sky" icon={faPencil} onClick={changeState(FormState.Text)} />
-	<IconButton hoverBgColor="sky" icon={faLink} onClick={changeState(FormState.Link)} />
-	<IconButton hoverBgColor="sky" icon={faImage} onClick={uploadFiles(FormState.Image)} />
-	<IconButton hoverBgColor="sky" icon={faFilm} onClick={uploadFiles(FormState.Video)} />
-	<IconButton hoverBgColor="sky" icon={faMicrophone} onClick={uploadFiles(FormState.Audio)} />
-	<IconButton hoverBgColor="sky" icon={faFile} onClick={uploadFiles(FormState.File)} />
+	<div class="text-accent flex items-center justify-start">
+		<IconButton hoverBgColor="sky" icon={faPencil} onClick={changeState(FormState.Text)} />
+		<IconButton hoverBgColor="sky" icon={faLink} onClick={changeState(FormState.Link)} />
+		<IconButton hoverBgColor="sky" icon={faImage} onClick={selectFiles(FormState.Image)} />
+		<IconButton hoverBgColor="sky" icon={faFilm} onClick={selectFiles(FormState.Video)} />
+		<IconButton hoverBgColor="sky" icon={faMicrophone} onClick={selectFiles(FormState.Audio)} />
+		<IconButton hoverBgColor="sky" icon={faFile} onClick={selectFiles(FormState.File)} />
+	</div>
 </div>
 <div class:hidden={state.form !== FormState.Text}>
 	<div class="textarea mb-4" bind:innerText={state.text} contenteditable></div>
@@ -147,7 +177,7 @@
 			<FilePreview {file} name={file.name} type={file.type} />
 		{/each}
 	</div>
-	<FormButtons bind:state={state.form} />
+	<FormButtons bind:state={state.form} onSubmit={uploadFiles} />
 </div>
 
 <style>

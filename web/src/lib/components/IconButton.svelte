@@ -5,17 +5,28 @@
 
 	interface Props {
 		icon: IconDefinition;
+		size?: string;
 		hoverBgColor?: string;
 		onClick?: () => void;
 		class?: ClassValue;
 	}
 
+	interface SizeMap {
+		[key: string]: string;
+	}
+
+	const sizeMap: SizeMap = {
+		sm: 'h-10 w-10',
+		xs: 'h-8 w-8'
+	};
+
 	const props: Props = $props();
-	const { icon, hoverBgColor = 'gray', onClick } = props;
+	const { icon, size = 'sm', hoverBgColor = 'gray', onClick } = props;
+	const sizeClasses = sizeMap[size] || sizeMap['sm'];
 </script>
 
 <button
-	class={`icon-button icon-button-hover-bg-${hoverBgColor} flex h-10 w-10 cursor-pointer items-center justify-center rounded-full ${props.class}`}
+	class={`icon-button icon-button-hover-bg-${hoverBgColor} flex ${sizeClasses} cursor-pointer items-center justify-center rounded-full ${props.class}`}
 	onclick={onClick}
 >
 	<FontAwesomeIcon {icon} />
@@ -36,6 +47,6 @@
 	}
 
 	.icon-button-hover-bg-red:hover {
-		background-color: --alpha(var(--color-red-400) / 20%);
+		background-color: --alpha(var(--color-red-500) / 20%);
 	}
 </style>

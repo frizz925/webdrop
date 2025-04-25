@@ -1,10 +1,14 @@
 <script lang="ts">
 	import type { TextContent } from '$lib/models';
-	import Content from './Content.svelte';
+	import Content, { type PartialProps } from './Content.svelte';
 
-	const { content, timestamp }: { content: TextContent; timestamp: Date } = $props();
+	interface Props extends PartialProps {
+		content: TextContent;
+	}
+
+	const { sid, object, content, onDelete }: Props = $props();
 </script>
 
-<Content {timestamp}>
+<Content {sid} {object} {onDelete}>
 	<div class="px-4 pt-4">{content.data}</div>
 </Content>

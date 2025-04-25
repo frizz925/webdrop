@@ -1,13 +1,21 @@
 <script lang="ts">
+	import type { FileObject, SessionID } from '$lib/models';
 	import { format, formatDistanceToNowStrict } from 'date-fns';
 	import { onMount } from 'svelte';
 
-	interface Props {
+	export interface PartialProps {
+		sid: SessionID;
+		object: FileObject;
 		children?: any;
-		timestamp: Date;
+		onDelete?: (obj: FileObject) => void;
 	}
 
-	const { children, timestamp }: Props = $props();
+	interface Props extends PartialProps {
+		children?: any;
+	}
+
+	const { sid, object: obj, children, onDelete }: Props = $props();
+	const { id, timestamp } = obj;
 	const datetime = format(timestamp, 'yyyy-MM-dd HH:mm:ss');
 
 	let showTimestamp = $state(false);
@@ -20,6 +28,11 @@
 		elapsed = formatDistanceToNowStrict(timestamp) + ' ago';
 	};
 
+	const deleteObject = async () => {
+		await fetch(`/api/session/${sid}/${id}`, { method: 'DELETE' });
+		onDelete && onDelete(obj);
+	};
+
 	onMount(() => {
 		updateElapsed();
 		const interval = setInterval(updateElapsed, 5000);
@@ -29,19 +42,22 @@
 
 <div class="border-b">
 	{@render children()}
-	<div>
+	<div class="text-sub flex items-center justify-start p-4 text-sm">
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div
-			class="text-sub inline-block cursor-pointer p-4 text-sm"
-			onclick={toggleTimestamp}
-			onkeypress={toggleTimestamp}
-		>
-			<span class={!showTimestamp ? 'inline' : 'hidden'}>
-				{elapsed}
-			</span>
-			<span class={showTimestamp ? 'inline' : 'hidden'}>
-				{datetime}
-			</span>
+		<div class="grow">
+			<div
+				class="inline-block cursor-pointer"
+				onclick={toggleTimestamp}
+				onkeypress={toggleTimestamp}
+			>
+				<span class={!showTimestamp ? 'inline' : 'hidden'}>
+					{elapsed}
+				</span>
+				<span class={showTimestamp ? 'inline' : 'hidden'}>
+					{datetime}
+				</span>
+			</div>
 		</div>
+		<button class="block cursor-pointer text-red-500" onclick={deleteObject}>Delete</button>
 	</div>
 </div>

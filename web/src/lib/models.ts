@@ -1,5 +1,8 @@
 import { parseISO } from 'date-fns';
 
+export type ObjectID = number | string;
+export type SessionID = number | string;
+
 export interface Content {
 	kind: string;
 }
@@ -13,33 +16,37 @@ export interface LinkContent extends Content {
 	title: string;
 }
 
+export interface FileContent extends Content {
+	name: string;
+}
+
 export interface Upload<C> {
 	mime: string;
 	content: Content & C;
 }
 
-export interface FileObjectDto<C extends Content> {
-	id: number;
+export interface FileObjectDto<C extends Content = Content> {
+	id: ObjectID;
 	mime: string;
 	timestamp: string;
 	content: C;
 }
 
-export interface FileObject<C extends Content> {
-	id: number;
+export interface FileObject<C extends Content = Content> {
+	id: ObjectID;
 	mime: string;
 	timestamp: Date;
 	content: C;
 }
 
-export interface SessionDto {
-	id: number;
-	objects: FileObjectDto<Content>[];
+export interface SessionDto<C extends Content = Content> {
+	id: SessionID;
+	objects: FileObjectDto<C>[];
 }
 
-export interface Session {
-	id: number;
-	objects: FileObject<Content>[];
+export interface Session<C extends Content = Content> {
+	id: SessionID;
+	objects: FileObject<C>[];
 }
 
 export const sessionFromDto = (dto: SessionDto) => {

@@ -6,7 +6,8 @@ export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	server: {
 		proxy: {
-			'/api': 'http://localhost:8000'
+			'/api': 'http://localhost:8000',
+			'/object': 'http://localhost:8000'
 		}
 	}
 });
