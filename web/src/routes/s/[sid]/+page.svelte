@@ -100,7 +100,7 @@
 
 		ws = new WebSocket(url);
 		ws.onopen = () => {
-			console.log('WebSocket connected')
+			console.log('WebSocket connected');
 		};
 		ws.onmessage = ({ data }) => {
 			if (typeof data !== 'string') return;
@@ -113,15 +113,15 @@
 			connectWS();
 		};
 		ws.onclose = () => {
-			console.log('WebSocket disconnected')
+			console.log('WebSocket disconnected');
 		};
-	}
+	};
 
 	onMount(connectWS);
 </script>
 
 <div
-	class="fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-center border-b bg-white px-4 dark:bg-gray-800"
+	class="fixed left-0 top-0 z-10 flex h-12 w-full items-center justify-center border-b bg-white px-4 dark:bg-gray-800"
 >
 	<button class="cursor-pointer text-xl font-bold" onclick={returnToTop}>WebDrop</button>
 </div>
@@ -175,35 +175,19 @@
 				/>
 			{:else if obj.content.kind === 'file'}
 				{#if obj.mime.startsWith('image/')}
-					<ImageContent
-						{sid}
-						object={obj}
-						content={obj.content as models.FileContent}
-						onDelete={deleteObject}
-					/>
+					<ImageContent {sid} object={obj} content={obj.content as models.FileContent} />
 				{:else if obj.mime.startsWith('video/')}
-					<VideoContent
-						{sid}
-						object={obj}
-						content={obj.content as models.FileContent}
-						onDelete={deleteObject}
-					/>
+					<VideoContent {sid} object={obj} content={obj.content as models.FileContent} />
 				{:else if obj.mime.startsWith('audio/')}
-					<AudioContent
-						{sid}
-						object={obj}
-						content={obj.content as models.FileContent}
-						onDelete={deleteObject}
-					/>
-				{:else}
-					<LinkContent
-						{sid}
-						object={obj}
-						content={obj.content as models.FileContent}
-						onDelete={deleteObject}
-						download
-					/>
+					<AudioContent {sid} object={obj} content={obj.content as models.FileContent} />
 				{/if}
+				<LinkContent
+					{sid}
+					object={obj}
+					content={obj.content as models.FileContent}
+					onDelete={deleteObject}
+					download
+				/>
 			{/if}
 		{/each}
 	</div>
