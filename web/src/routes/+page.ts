@@ -7,7 +7,7 @@ export const load: PageLoad = async ({ fetch }) => {
 	const sid = localStorage.getItem(SID_KEY);
 	if (!sid) return {};
 	const res = await fetch(`/api/session/${sid}`, { method: 'HEAD' });
-	if (res.status === 200) window.location.assign(`/s/${sid}`);
+	if (res.status === 200) window.location.assign(`/session/${sid}`);
 	else localStorage.removeItem(SID_KEY);
 	return {};
 };

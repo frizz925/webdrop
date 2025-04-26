@@ -18,7 +18,7 @@
 
 		const res = await fetch(`/api/session/${sid}`, { method: 'HEAD' });
 		if (res.status === 200) {
-			window.location.assign(`/s/${sid}`);
+			window.location.assign(`/session/${sid}`);
 		} else if (res.status === 400) {
 			message = 'Invalid session ID';
 		} else if (res.status === 404) {
@@ -39,7 +39,7 @@
 
 		const sess: Session = await res.json();
 		localStorage.setItem(SID_KEY, sess.id.toString());
-		window.location.assign(`/s/${sess.id}`);
+		window.location.assign(`/session/${sess.id}`);
 	};
 </script>
 

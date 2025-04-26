@@ -37,7 +37,7 @@ impl MainController {
             .nest("/ws", ws.into_router())
             .nest("/api", api.into_router())
             .nest("/objects", object.into_router())
-            .route_service("/s/{sid}", ServeFile::new(index))
+            .route_service("/session/{sid}", ServeFile::new(index))
             .fallback_service(ServeDir::new(PUBLIC_PATH))
     }
 }
