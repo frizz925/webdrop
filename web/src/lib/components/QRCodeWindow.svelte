@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import QRCode from 'qrcode';
+	import * as QRCode from 'qrcode';
 
 	interface Props {
 		shown: boolean;

@@ -20,6 +20,8 @@
 	} from '@fortawesome/free-solid-svg-icons';
 	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
+	import VideoContent from '$lib/components/VideoContent.svelte';
+	import AudioContent from '$lib/components/AudioContent.svelte';
 
 	const { sid } = page.params;
 	const slug = sluggify(sid);
@@ -65,7 +67,9 @@
 		session.objects = session.objects.filter((other) => other.id != oid);
 	};
 
+	let ws: WebSocket | undefined;
 	const exitSession = () => {
+		if (ws) ws.close();
 		window.location.assign('/');
 	};
 
@@ -89,19 +93,31 @@
 		'session.deleted': exitSession
 	};
 
-	onMount(() => {
+	const connectWS = () => {
 		const url = new URL(window.location.href);
 		url.protocol = url.protocol.replace('http', 'ws');
 		url.pathname = `/ws/${sid}`;
 
-		const ws = new WebSocket(url);
+		ws = new WebSocket(url);
+		ws.onopen = () => {
+			console.log('WebSocket connected')
+		};
 		ws.onmessage = ({ data }) => {
 			if (typeof data !== 'string') return;
 			const evt = JSON.parse(data as string) as NotificationEvent;
 			const handler = notificationHandlers[evt.name];
 			handler && handler(evt);
 		};
-	});
+		ws.onerror = (e) => {
+			console.error('WebSocket error', e);
+			connectWS();
+		};
+		ws.onclose = () => {
+			console.log('WebSocket disconnected')
+		};
+	}
+
+	onMount(connectWS);
 </script>
 
 <div
@@ -160,6 +176,20 @@
 			{:else if obj.content.kind === 'file'}
 				{#if obj.mime.startsWith('image/')}
 					<ImageContent
+						{sid}
+						object={obj}
+						content={obj.content as models.FileContent}
+						onDelete={deleteObject}
+					/>
+				{:else if obj.mime.startsWith('video/')}
+					<VideoContent
+						{sid}
+						object={obj}
+						content={obj.content as models.FileContent}
+						onDelete={deleteObject}
+					/>
+				{:else if obj.mime.startsWith('audio/')}
+					<AudioContent
 						{sid}
 						object={obj}
 						content={obj.content as models.FileContent}

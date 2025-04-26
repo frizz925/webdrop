@@ -13,5 +13,7 @@
 </script>
 
 <MediaContent {sid} {object} {src} name={content.name} {onDelete}>
-	<img {src} alt={content.name} class="w-full" />
+	<div class="px-4 pt-4">
+		<audio controls {src} class="w-full"></audio>
+	</div>
 </MediaContent>

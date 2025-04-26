@@ -20,13 +20,18 @@
 		xs: 'h-8 w-8'
 	};
 
-	const props: Props = $props();
-	const { icon, size = 'sm', hoverBgColor = 'gray', onClick } = props;
+	const {
+		icon,
+		size = 'sm',
+		hoverBgColor = 'gray',
+		onClick,
+		class: className = ''
+	}: Props = $props();
 	const sizeClasses = sizeMap[size] || sizeMap['sm'];
 </script>
 
 <button
-	class={`icon-button icon-button-hover-bg-${hoverBgColor} flex ${sizeClasses} cursor-pointer items-center justify-center rounded-full ${props.class}`}
+	class={`icon-button icon-button-hover-bg-${hoverBgColor} flex ${sizeClasses} cursor-pointer items-center justify-center rounded-full ${className}`}
 	onclick={onClick}
 >
 	<FontAwesomeIcon {icon} />

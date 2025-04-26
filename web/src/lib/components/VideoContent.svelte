@@ -13,5 +13,8 @@
 </script>
 
 <MediaContent {sid} {object} {src} name={content.name} {onDelete}>
-	<img {src} alt={content.name} class="w-full" />
+	<video controls>
+		<source {src} />
+		<track kind="captions" />
+	</video>
 </MediaContent>
