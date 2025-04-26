@@ -32,6 +32,14 @@ async fn main() {
     let addr = listener.local_addr().unwrap();
     event!(Level::INFO, "Listening at {addr}");
 
+    let local_ip = local_ip_address::local_ip().unwrap();
+    event!(
+        Level::INFO,
+        "Access WebDrop via http://{}:{}/",
+        local_ip.to_string(),
+        addr.port()
+    );
+
     axum::serve(listener, router).await.unwrap();
 }
 
