@@ -61,7 +61,7 @@
 			</div>
 		</div>
 		<div class="block cursor-pointer text-red-400 dark:text-red-800">
-			<IconButton icon={faTrash} size="xs" onClick={deleteObject} />
+			<IconButton icon={faTrash} hoverBgColor="red" size="xs" onClick={deleteObject} />
 		</div>
 	</div>
 </div>
