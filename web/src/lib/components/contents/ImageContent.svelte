@@ -6,4 +6,6 @@
 	const src = getFileUrl(sid, object, content);
 </script>
 
-<img {src} alt={content.name} class="w-full" />
+<a href={src} target="_blank">
+	<img {src} alt={content.name} class="w-full" />
+</a>
