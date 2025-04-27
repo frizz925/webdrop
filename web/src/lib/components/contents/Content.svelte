@@ -60,7 +60,7 @@
 				</span>
 			</div>
 		</div>
-		<div class="block cursor-pointer text-red-400 dark:text-red-800">
+		<div class="block cursor-pointer text-red-400">
 			<IconButton icon={faTrash} hoverBgColor="red" size="xs" onClick={deleteObject} />
 		</div>
 	</div>
