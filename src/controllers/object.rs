@@ -6,10 +6,7 @@ use std::{
 
 use axum::{
     body::Body,
-    extract::{
-        multipart::{Field, MultipartError},
-        DefaultBodyLimit, Multipart, Path, State,
-    },
+    extract::{multipart::MultipartError, DefaultBodyLimit, Multipart, Path, State},
     http::StatusCode,
     routing::{get, post},
     Json, Router,
@@ -70,7 +67,7 @@ async fn upload_handler(
     multipart: Multipart,
 ) -> Result<Json<Object>, StatusCode> {
     let service = (controller.factory)(&sid);
-    let result = do_multi_upload(service, multipart).await.map_err(|err| {
+    let result = do_upload(service, multipart).await.map_err(|err| {
         if let Some(e) = err.downcast_ref::<MultipartError>() {
             event!(Level::ERROR, "Multipart error: {e}");
             StatusCode::BAD_REQUEST
@@ -85,7 +82,7 @@ async fn upload_handler(
     }
 }
 
-async fn do_multi_upload<R: ObjectRepository>(
+async fn do_upload<R: ObjectRepository>(
     service: Arc<ObjectService<R>>,
     mut multipart: Multipart,
 ) -> Result<Option<Object>, Box<dyn Error>> {
@@ -95,22 +92,13 @@ async fn do_multi_upload<R: ObjectRepository>(
                 continue;
             }
             let mime = field.content_type().unwrap_or("application/octet-stream");
-            let obj = do_upload(&service, filename.to_owned(), mime.to_owned(), field).await?;
+            let content = FileContent::new(filename.to_owned());
+            let upload = Upload::new(mime.to_owned(), content);
+            let stream = field.map_err(|err| IoError::new(ErrorKind::Other, err));
+            let reader = StreamReader::new(stream);
+            let obj = service.upload(upload, reader).await?;
             return Ok(Some(obj));
         }
     }
     Ok(None)
-}
-
-async fn do_upload<'a, R: ObjectRepository>(
-    service: &ObjectService<R>,
-    filename: String,
-    mime: String,
-    field: Field<'a>,
-) -> Result<Object, ObjectError> {
-    let content = FileContent::new(filename);
-    let upload = Upload::new(mime, content);
-    let stream = field.map_err(|err| IoError::new(ErrorKind::Other, err));
-    let reader = StreamReader::new(stream);
-    service.upload(upload, reader).await
 }

@@ -3,6 +3,7 @@ use std::{env, path::PathBuf, str::FromStr, sync::Arc};
 use tokio::net::TcpListener;
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use tracing::{event, Level};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use webdrop::{
     controllers::MainController,
     models::session::SessionId,
@@ -17,7 +18,14 @@ const NOTIFICATION_BACKLOG_SIZE: usize = 256;
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt().init();
+    tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(
+            EnvFilter::builder()
+                .with_default_directive(Level::INFO.into())
+                .from_env_lossy(),
+        )
+        .init();
 
     let repository = ConcreteServiceRepository::new(STORAGE_DIR);
     let service = SessionService::new(repository, websocket_service_factory);

@@ -52,22 +52,24 @@ impl<S: ObjectRepository> ObjectService<S> {
     }
 
     pub async fn put(&self, upload: Upload) -> Result<Object> {
-        normalize_result(self.repository.put(upload).await.map(|obj| {
-            let event = Event::new(EventName::ObjectCreated, obj.id);
-            self.websocket.publish(event);
-            obj
-        }))
+        normalize_result(
+            self.repository
+                .put(upload)
+                .await
+                .map(|obj| self.publish_object_created(obj)),
+        )
     }
 
     pub async fn upload<R>(&self, upload: Upload, reader: R) -> Result<Object>
     where
         R: AsyncRead + Unpin + Send + Sync,
     {
-        normalize_result(self.repository.upload(upload, reader).await.map(|obj| {
-            let event = Event::new(EventName::ObjectCreated, obj.id);
-            self.websocket.publish(event);
-            obj
-        }))
+        normalize_result(
+            self.repository
+                .upload(upload, reader)
+                .await
+                .map(|obj| self.publish_object_created(obj)),
+        )
     }
 
     pub async fn get(&self, oid: &ObjectId) -> Result<Object> {
@@ -87,6 +89,12 @@ impl<S: ObjectRepository> ObjectService<S> {
             let event = Event::new(EventName::ObjectDeleted, *oid);
             self.websocket.publish(event);
         }))
+    }
+
+    fn publish_object_created(&self, obj: Object) -> Object {
+        let event = Event::new(EventName::ObjectCreated, obj.id);
+        self.websocket.publish(event);
+        obj
     }
 }
 
