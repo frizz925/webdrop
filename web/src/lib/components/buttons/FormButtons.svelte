@@ -29,7 +29,7 @@
 		<FontAwesomeIcon icon={faX} />
 	</button>
 	<button
-		class="btn-send bg-accent flex h-10 w-10 items-center justify-center rounded-full text-gray-100"
+		class="btn-send bg-accent flex h-10 w-10 items-center justify-center rounded-full text-gray-100 transition-opacity"
 		{disabled}
 		onclick={() => !disabled && onSubmit && onSubmit()}
 	>

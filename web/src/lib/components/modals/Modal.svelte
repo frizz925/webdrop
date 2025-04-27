@@ -13,7 +13,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div class="modal-bg bg-black/60" class:hidden={!shown} onclick={() => (shown = false)}>
-	<div class="cursor-default" onclick={(evt) => evt.stopPropagation()}>
+	<div class="mt-24 cursor-default px-4" onclick={(evt) => evt.stopPropagation()}>
 		{@render children()}
 	</div>
 </div>

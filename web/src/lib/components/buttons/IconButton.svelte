@@ -31,7 +31,7 @@
 </script>
 
 <button
-	class={`icon-button icon-button-hover-bg-${hoverBgColor} flex ${sizeClasses} cursor-pointer items-center justify-center rounded-full ${className}`}
+	class={`icon-button icon-button-hover-bg-${hoverBgColor} flex ${sizeClasses} cursor-pointer items-center justify-center rounded-full ${className} transition-colors`}
 	onclick={onClick}
 >
 	<FontAwesomeIcon {icon} />
@@ -40,7 +40,6 @@
 <style>
 	.icon-button {
 		background-color: transparent;
-		transition: background-color 300ms;
 	}
 
 	.icon-button-hover-bg-gray:hover {

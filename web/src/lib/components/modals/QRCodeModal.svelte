@@ -15,9 +15,7 @@
 </script>
 
 <Modal bind:shown>
-	<div class="align-center flex h-full w-full justify-center">
-		<div class="bg-white">
-			<canvas bind:this={canvas}></canvas>
-		</div>
+	<div class="flex items-center justify-center">
+		<canvas bind:this={canvas}></canvas>
 	</div>
 </Modal>
