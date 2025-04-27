@@ -28,12 +28,6 @@ use crate::{
     ObjectServiceFactory,
 };
 
-const SIZE_KIB: usize = 1024;
-const SIZE_MIB: usize = 1024 * SIZE_KIB;
-const SIZE_GIB: usize = 1024 * SIZE_MIB;
-
-const BODY_LIMIT: usize = 2 * SIZE_GIB;
-
 pub struct ObjectController {
     factory: ObjectServiceFactory,
 }
@@ -49,7 +43,7 @@ impl ObjectController {
             .route("/{sid}", post(upload_handler))
             .route("/{sid}/{oid}/{name}", get(download_handler))
             .with_state(state)
-            .layer(DefaultBodyLimit::max(BODY_LIMIT))
+            .layer(DefaultBodyLimit::disable())
     }
 }
 

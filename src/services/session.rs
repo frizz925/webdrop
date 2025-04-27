@@ -7,7 +7,7 @@ use std::{
 
 use crate::{
     models::{
-        event::Event,
+        event::EventName,
         session::{Session, SessionId},
     },
     registries::{OBJECT_SERVICES, WEBSOCKET_SERVICES},
@@ -63,7 +63,7 @@ impl<R: SessionRepository> SessionService<R> {
     pub async fn delete(&self, sid: &SessionId) -> Result<()> {
         normalize_result(self.repository.delete(sid).await.map(|_| {
             let service = (self.websocket)(sid);
-            service.dispatch(Event::SessionDeleted);
+            service.publish(EventName::SessionDeleted.into_event());
             OBJECT_SERVICES.write().unwrap().remove(sid);
             WEBSOCKET_SERVICES.write().unwrap().remove(sid);
         }))

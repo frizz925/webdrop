@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { SID_KEY } from '$lib';
+	import AudioContent from '$lib/components/AudioContent.svelte';
 	import Form from '$lib/components/Form.svelte';
 	import IconButton from '$lib/components/IconButton.svelte';
 	import ImageContent from '$lib/components/ImageContent.svelte';
 	import LinkContent from '$lib/components/LinkContent.svelte';
 	import QRCodeWindow from '$lib/components/QRCodeWindow.svelte';
 	import TextContent from '$lib/components/TextContent.svelte';
+	import VideoContent from '$lib/components/VideoContent.svelte';
 	import type * as models from '$lib/models';
-	import type { NotificationEvent, NotificationHandlers, ObjectEvent } from '$lib/notification';
+	import type { NotificationEvent, NotificationHandlers } from '$lib/notification';
 	import { sluggify } from '$lib/utils';
 	import {
 		faClipboard,
@@ -20,8 +22,6 @@
 	} from '@fortawesome/free-solid-svg-icons';
 	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
-	import VideoContent from '$lib/components/VideoContent.svelte';
-	import AudioContent from '$lib/components/AudioContent.svelte';
 
 	const { sid } = page.params;
 	const slug = sluggify(sid);
@@ -82,13 +82,13 @@
 
 	const notificationHandlers: NotificationHandlers = {
 		'object.created': async (evt: NotificationEvent) => {
-			const oid = (evt as ObjectEvent).objectID;
+			const oid = evt.data as models.ObjectID;
 			const res = await fetch(`/api/session/${sid}/${oid}`);
 			const obj = (await res.json()) as models.FileObject;
 			addObject(obj);
 		},
 		'object.deleted': (evt: NotificationEvent) => {
-			deleteObject((evt as ObjectEvent).objectID);
+			deleteObject(evt.data as models.ObjectID);
 		},
 		'session.deleted': exitSession
 	};
@@ -121,7 +121,7 @@
 </script>
 
 <div
-	class="fixed left-0 top-0 z-10 flex h-12 w-full items-center justify-center border-b bg-white px-4 dark:bg-gray-800"
+	class="fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-center border-b bg-white px-4 dark:bg-gray-800"
 >
 	<button class="cursor-pointer text-xl font-bold" onclick={returnToTop}>WebDrop</button>
 </div>

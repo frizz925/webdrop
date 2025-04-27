@@ -28,6 +28,7 @@
 		};
 		files: File[];
 		message: string;
+		uploading: boolean;
 	}
 
 	const initialState = () =>
@@ -39,7 +40,8 @@
 				title: ''
 			},
 			files: [],
-			message: ''
+			message: '',
+			uploading: false
 		}) as State;
 
 	let { sid, onSubmit }: Props = $props();
@@ -89,9 +91,10 @@
 
 	const submit = async <C extends models.Content>(mime: string, content: C) => {
 		const upload: models.Upload<C> = { mime, content };
+		state.uploading = true;
 		const res = await fetch(`/api/session/${sid}`, jsonRequest('POST', upload));
 		if (res.status >= 400) {
-			state.message = 'Failed to send';
+			state = { ...state, uploading: false, message: 'Failed to send' };
 			throw res;
 		}
 		const dto: models.FileObjectDto<C> = await res.json();
@@ -130,7 +133,8 @@
 	const uploadFiles = async () => {
 		const files = state.files;
 		if (files.length <= 0) return;
-		await Promise.all(files.map(uploadFile));
+		state.uploading = true;
+		for (const file of files) await uploadFile(file);
 		resetState();
 	};
 </script>
@@ -154,7 +158,7 @@
 	<FormButtons
 		bind:state={state.form}
 		message={state.message}
-		disabled={state.text.length <= 0}
+		disabled={state.text.length <= 0 || state.uploading}
 		onSubmit={submitText}
 	/>
 </div>
@@ -164,7 +168,7 @@
 	<FormButtons
 		bind:state={state.form}
 		message={state.message}
-		disabled={state.url.value.length <= 0}
+		disabled={state.url.value.length <= 0 || state.uploading}
 		onSubmit={submitURL}
 	/>
 </div>
@@ -174,7 +178,7 @@
 			<FilePreview {file} name={file.name} type={file.type} />
 		{/each}
 	</div>
-	<FormButtons bind:state={state.form} onSubmit={uploadFiles} />
+	<FormButtons bind:state={state.form} onSubmit={uploadFiles} disabled={state.uploading} />
 </div>
 
 <style>

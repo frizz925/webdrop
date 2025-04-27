@@ -20,9 +20,9 @@ export interface FileContent extends Content {
 	name: string;
 }
 
-export interface Upload<C> {
+export interface Upload<C extends Content = Content> {
 	mime: string;
-	content: Content & C;
+	content: C;
 }
 
 export interface FileObjectDto<C extends Content = Content> {

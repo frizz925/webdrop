@@ -11,12 +11,12 @@ use tokio::sync::Notify;
 
 pub type ChannelId = usize;
 
-struct InnerDispatcher<T> {
+struct InnerPubSub<T> {
     counter: ChannelId,
-    channels: HashMap<ChannelId, Arc<Channel<T>>>,
+    channels: HashMap<ChannelId, Arc<Subscriber<T>>>,
 }
 
-impl<T> InnerDispatcher<T> {
+impl<T> InnerPubSub<T> {
     fn new() -> Self {
         Self {
             counter: 0,
@@ -25,8 +25,8 @@ impl<T> InnerDispatcher<T> {
     }
 }
 
-pub struct Channel<T> {
-    dispatcher: Arc<RwLock<InnerDispatcher<T>>>,
+pub struct Subscriber<T> {
+    pubsub: Arc<RwLock<InnerPubSub<T>>>,
     id: ChannelId,
     buf: Mutex<VecDeque<T>>,
     notify: Notify,
@@ -34,10 +34,10 @@ pub struct Channel<T> {
     counter: AtomicUsize,
 }
 
-impl<T> Channel<T> {
-    fn new(dispatcher: Arc<RwLock<InnerDispatcher<T>>>, id: ChannelId, backlog: usize) -> Self {
+impl<T> Subscriber<T> {
+    fn new(pubsub: Arc<RwLock<InnerPubSub<T>>>, id: ChannelId, backlog: usize) -> Self {
         Self {
-            dispatcher,
+            pubsub,
             id,
             buf: Mutex::new(VecDeque::with_capacity(backlog)),
             notify: Notify::new(),
@@ -70,36 +70,36 @@ impl<T> Channel<T> {
     }
 }
 
-impl<T> Drop for Channel<T> {
+impl<T> Drop for Subscriber<T> {
     fn drop(&mut self) {
-        let mut dispatcher = self.dispatcher.write().unwrap();
+        let mut dispatcher = self.pubsub.write().unwrap();
         dispatcher.channels.remove(&self.id);
     }
 }
 
-pub struct Dispatcher<T> {
-    inner: Arc<RwLock<InnerDispatcher<T>>>,
+pub struct PubSub<T> {
+    inner: Arc<RwLock<InnerPubSub<T>>>,
     backlog: usize,
 }
 
-impl<T: Clone + ?Sized> Dispatcher<T> {
+impl<T: Clone + ?Sized> PubSub<T> {
     pub fn new(backlog: usize) -> Self {
         Self {
-            inner: Arc::new(RwLock::new(InnerDispatcher::new())),
+            inner: Arc::new(RwLock::new(InnerPubSub::new())),
             backlog,
         }
     }
 
-    pub fn subscribe(&self) -> Arc<Channel<T>> {
+    pub fn subscribe(&self) -> Arc<Subscriber<T>> {
         let mut inner = self.inner.write().unwrap();
         let id = inner.counter;
-        let ch = Arc::new(Channel::new(self.inner.clone(), id, self.backlog));
+        let ch = Arc::new(Subscriber::new(self.inner.clone(), id, self.backlog));
         inner.channels.insert(id, ch.clone());
         inner.counter += 1;
         ch
     }
 
-    pub fn send(&self, value: &T) {
+    pub fn publish(&self, value: &T) {
         let inner = self.inner.read().unwrap();
         for ch in inner.channels.values() {
             ch.push(value.to_owned());
@@ -111,13 +111,13 @@ impl<T: Clone + ?Sized> Dispatcher<T> {
 mod tests {
     use tokio::task::JoinError;
 
-    use super::Dispatcher;
+    use super::PubSub;
 
     #[tokio::test]
     async fn test_dispatcher() -> Result<(), JoinError> {
-        let dispatcher = Dispatcher::new(1);
+        let dispatcher = PubSub::new(1);
         let unexpected = "Should not be received".to_owned();
-        dispatcher.send(&unexpected);
+        dispatcher.publish(&unexpected);
 
         let channel = dispatcher.subscribe();
         let handle = tokio::spawn(async move {
@@ -126,7 +126,7 @@ mod tests {
         });
 
         let expected = "Hello dispatcher".to_owned();
-        dispatcher.send(&expected);
+        dispatcher.publish(&expected);
         let result = handle.await?;
         assert_eq!(result, expected);
 

@@ -2,25 +2,25 @@ use std::sync::Arc;
 
 use crate::{
     models::event::Event,
-    utils::sync::{Channel, Dispatcher},
+    utils::sync::{PubSub, Subscriber},
 };
 
 pub struct WebSocketService {
-    dispatcher: Dispatcher<Event>,
+    pubsub: PubSub<Event>,
 }
 
 impl WebSocketService {
     pub fn new(backlog: usize) -> Self {
         Self {
-            dispatcher: Dispatcher::new(backlog),
+            pubsub: PubSub::new(backlog),
         }
     }
 
-    pub fn subscribe(&self) -> Arc<Channel<Event>> {
-        self.dispatcher.subscribe()
+    pub fn subscribe(&self) -> Arc<Subscriber<Event>> {
+        self.pubsub.subscribe()
     }
 
-    pub fn dispatch(&self, event: Event) {
-        self.dispatcher.send(&event);
+    pub fn publish(&self, event: Event) {
+        self.pubsub.publish(&event);
     }
 }

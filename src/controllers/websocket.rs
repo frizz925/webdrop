@@ -13,8 +13,11 @@ use futures::SinkExt;
 use tracing::{event, Level};
 
 use crate::{
-    models::{event::Event, session::SessionId},
-    utils::sync::Channel,
+    models::{
+        event::{Event, EventName},
+        session::SessionId,
+    },
+    utils::sync::Subscriber,
     WebSocketServiceFactory,
 };
 
@@ -41,9 +44,9 @@ async fn websocket_handler(
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
     let service = (controller.factory)(&sid);
-    let channel = service.subscribe();
+    let subscriber = service.subscribe();
     ws.on_upgrade(move |socket| async {
-        if let Err(e) = handle_socket(socket, channel).await {
+        if let Err(e) = handle_socket(socket, subscriber).await {
             event!(Level::ERROR, "WebSocket error: {e}")
         }
     })
@@ -51,15 +54,17 @@ async fn websocket_handler(
 
 async fn handle_socket(
     mut socket: WebSocket,
-    channel: Arc<Channel<Event>>,
+    subscriber: Arc<Subscriber<Event>>,
 ) -> Result<(), Box<dyn Error>> {
     let mut closed = false;
     while !closed {
-        for event in channel.pop().await {
+        let mut events: Vec<Event> = subscriber.pop().await.into_iter().collect();
+        events.sort_by_key(|e| e.timestamp);
+        for event in events {
             let json = serde_json::to_string(&event)?;
             let message = Message::Text(json.into());
             socket.send(message).await?;
-            if let Event::SessionDeleted = event {
+            if let EventName::SessionDeleted = event.name {
                 closed = true;
                 break;
             }

@@ -10,7 +10,7 @@ use tokio::io::AsyncRead;
 
 use crate::{
     models::{
-        event::Event,
+        event::{Event, EventName},
         object::{Object, ObjectId, Upload},
     },
     repositories::object::ObjectRepository,
@@ -53,7 +53,8 @@ impl<S: ObjectRepository> ObjectService<S> {
 
     pub async fn put(&self, upload: Upload) -> Result<Object> {
         normalize_result(self.repository.put(upload).await.map(|obj| {
-            self.websocket.dispatch(Event::ObjectCreated(obj.id));
+            let event = Event::new(EventName::ObjectCreated, obj.id);
+            self.websocket.publish(event);
             obj
         }))
     }
@@ -63,7 +64,8 @@ impl<S: ObjectRepository> ObjectService<S> {
         R: AsyncRead + Unpin + Send + Sync,
     {
         normalize_result(self.repository.upload(upload, reader).await.map(|obj| {
-            self.websocket.dispatch(Event::ObjectCreated(obj.id));
+            let event = Event::new(EventName::ObjectCreated, obj.id);
+            self.websocket.publish(event);
             obj
         }))
     }
@@ -82,7 +84,8 @@ impl<S: ObjectRepository> ObjectService<S> {
 
     pub async fn delete(&self, oid: &ObjectId) -> Result<()> {
         normalize_result(self.repository.delete(oid).await.map(|_| {
-            self.websocket.dispatch(Event::ObjectDeleted(*oid));
+            let event = Event::new(EventName::ObjectDeleted, *oid);
+            self.websocket.publish(event);
         }))
     }
 }

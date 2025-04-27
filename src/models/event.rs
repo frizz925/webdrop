@@ -1,70 +1,55 @@
 use std::fmt::Display;
 
+use chrono::{DateTime, Utc};
 use serde::Serialize;
-
-use super::object::ObjectId;
-
-#[derive(Serialize)]
-struct ObjectEvent {
-    name: String,
-    #[serde(rename = "objectID")]
-    object_id: ObjectId,
-}
-
-impl ObjectEvent {
-    fn new<'a>(event: &'a Event, oid: &'a ObjectId) -> Self {
-        Self {
-            name: event.name().to_owned(),
-            object_id: oid.to_owned(),
-        }
-    }
-}
-
-#[derive(Serialize)]
-struct GenericEvent {
-    name: String,
-}
-
-impl GenericEvent {
-    fn new(event: &Event) -> Self {
-        Self {
-            name: event.name().to_owned(),
-        }
-    }
-}
+use serde_json::Value;
 
 #[derive(Clone)]
-pub enum Event {
-    ObjectCreated(ObjectId),
-    ObjectDeleted(ObjectId),
+pub enum EventName {
+    ObjectCreated,
+    ObjectDeleted,
     SessionDeleted,
 }
 
-impl Event {
-    pub fn name(&self) -> &'static str {
-        match self {
-            Self::ObjectCreated(_) => "object.created",
-            Self::ObjectDeleted(_) => "object.deleted",
-            Self::SessionDeleted => "session.deleted",
-        }
+impl EventName {
+    pub fn into_event(self) -> Event {
+        Event::new(self, Value::Null)
     }
 }
 
-impl Display for Event {
+impl Display for EventName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.name())
+        let s = match self {
+            Self::ObjectCreated => "object.created",
+            Self::ObjectDeleted => "object.deleted",
+            Self::SessionDeleted => "session.deleted",
+        };
+        f.write_str(s)
     }
 }
 
-impl Serialize for Event {
+impl Serialize for EventName {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        match self {
-            Self::ObjectCreated(oid) => ObjectEvent::new(self, oid).serialize(serializer),
-            Self::ObjectDeleted(oid) => ObjectEvent::new(self, oid).serialize(serializer),
-            other => GenericEvent::new(other).serialize(serializer),
+        self.to_string().serialize(serializer)
+    }
+}
+
+#[derive(Serialize, Clone)]
+pub struct Event {
+    pub name: EventName,
+    pub data: Value,
+    pub timestamp: DateTime<Utc>,
+}
+
+impl Event {
+    pub fn new<T: Serialize>(name: EventName, data: T) -> Self {
+        Self {
+            name,
+            data: serde_json::to_value(data).unwrap(),
+            timestamp: Utc::now(),
         }
     }
 }
