@@ -8,6 +8,7 @@
 		icon?: IconDefinition;
 		message?: string;
 		disabled?: boolean;
+		uploading?: boolean;
 		onSubmit?: () => void;
 	}
 
@@ -16,6 +17,7 @@
 		icon = faPaperPlane,
 		message = '',
 		disabled = false,
+		uploading = false,
 		onSubmit
 	}: Props = $props();
 </script>
@@ -24,6 +26,7 @@
 	<div class="grow text-red-400">{message}</div>
 	<button
 		class="btn mr-2 flex h-10 w-10 rounded-full bg-red-400 text-gray-50 shadow-sm shadow-transparent hover:shadow-red-400"
+		disabled={uploading}
 		onclick={() => (state = FormState.None)}
 	>
 		<FontAwesomeIcon icon={faX} />
@@ -48,13 +51,6 @@
 
 	.btn:disabled {
 		cursor: default;
-	}
-
-	.btn-send:disabled {
 		opacity: 50%;
-	}
-
-	.btn-send:not(:disabled) {
-		cursor: pointer;
 	}
 </style>

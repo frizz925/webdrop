@@ -8,7 +8,8 @@
 		faImage,
 		faLink,
 		faMicrophone,
-		faPencil
+		faPencil,
+		faPlus
 	} from '@fortawesome/free-solid-svg-icons';
 
 	import FormButtons from './buttons/FormButtons.svelte';
@@ -65,29 +66,77 @@
 
 	const changeState = (newState: FormState) => () => (state.form = newState);
 
-	const selectFiles = (nextState: FormState) => () => {
+	const fileListToArray = (fileList: FileList) => {
+		const files = [];
+		for (const file of fileList) files.push(file);
+		return files;
+	};
+
+	const updateFiles = (files: FileList | File[], nextState = FormState.File) => {
+		if (files.length <= 0) return;
+		if (files instanceof FileList) files = fileListToArray(files);
+		state = { ...state, form: nextState, files };
+	};
+
+	const selectFiles = (nextState?: FormState) => () => {
+		nextState = nextState || state.form;
+		const prevState = state.form;
 		fileInput.value = '';
 		fileInput.accept = acceptMap[nextState];
 		fileInput.onchange = (evt) => {
 			const el = evt.target as HTMLInputElement;
-			if (!el.files || el.files.length <= 0) return;
-
-			const files = [];
-			for (const file of el.files) {
-				files.push(file);
-			}
-			state = { ...state, form: nextState, files };
+			if (!el.files) return;
+			const files =
+				prevState === nextState ? [...state.files, ...fileListToArray(el.files)] : el.files;
+			updateFiles(files, nextState);
 		};
 		fileInput.click();
 	};
 
-	const stateIsFile = () => {
-		const result =
-			state.form === FormState.Image ||
-			state.form === FormState.Video ||
-			state.form === FormState.Audio ||
-			state.form === FormState.File;
-		return result;
+	const stateIsFile = (state: FormState) => {
+		return (
+			state === FormState.Image ||
+			state === FormState.Video ||
+			state === FormState.Audio ||
+			state === FormState.File
+		);
+	};
+
+	const textInputValid = (value: string) => {
+		return !state.uploading && value.trim().length > 0;
+	};
+
+	const updateText = (evt: Event) => {
+		const el = evt.target as HTMLDivElement;
+		const text = el.innerText.trim();
+		state.text = text;
+	};
+
+	const updateURL = (evt: Event) => {
+		const el = evt.target as HTMLInputElement;
+		const value = el.value.trim();
+		try {
+			new URL(el.value.trim());
+			state.url.value = value;
+		} catch {
+			state.url.value = '';
+		}
+	};
+
+	const processClipboard = (evt: ClipboardEvent) => {
+		const el = evt.target as HTMLDivElement;
+		if (el.innerText.trim().length > 0) return;
+		const files = evt.clipboardData?.files;
+		if (!files || files.length <= 0) return;
+		evt.preventDefault();
+		updateFiles(files);
+	};
+
+	const removeFile = (file?: File) => {
+		if (!file) return;
+		const files = state.files.filter((other) => other !== file);
+		const form = files.length <= 0 ? FormState.None : state.form;
+		state = { ...state, files, form };
 	};
 
 	const submit = async <C extends models.Content>(mime: string, content: C) => {
@@ -155,31 +204,52 @@
 	</div>
 </div>
 <div class:hidden={state.form !== FormState.Text}>
-	<div class="textarea mb-4" bind:innerText={state.text} contenteditable></div>
+	<div
+		class="textarea mb-4"
+		oninput={updateText}
+		onpaste={processClipboard}
+		contenteditable="plaintext-only"
+	></div>
 	<FormButtons
 		bind:state={state.form}
 		message={state.message}
-		disabled={state.text.length <= 0 || state.uploading}
+		disabled={!textInputValid(state.text)}
+		uploading={state.uploading}
 		onSubmit={submitText}
 	/>
 </div>
 <div class="flex flex-col" class:hidden={state.form !== FormState.Link}>
-	<input type="text" placeholder="URL" class="mb-4" bind:value={state.url.value} />
+	<input type="text" placeholder="URL" class="mb-4" oninput={updateURL} />
 	<input type="text" placeholder="Title (optional)" class="mb-4" bind:value={state.url.title} />
 	<FormButtons
 		bind:state={state.form}
 		message={state.message}
-		disabled={state.url.value.length <= 0 || state.uploading}
+		disabled={!textInputValid(state.url.value)}
+		uploading={state.uploading}
 		onSubmit={submitURL}
 	/>
 </div>
-<div class="flex flex-col" class:hidden={!stateIsFile()}>
-	<div class="mb-4 flex flex-wrap justify-center">
+<div class="flex flex-col" class:hidden={!stateIsFile(state.form)}>
+	<div class="mb-4 flex flex-wrap items-center justify-center">
 		{#each state.files as file (file.name)}
-			<FilePreview {file} name={file.name} type={file.type} />
+			<FilePreview
+				{file}
+				name={file.name}
+				type={file.type}
+				uploading={state.uploading}
+				onRemove={removeFile}
+			/>
 		{/each}
+		<div class:hidden={state.uploading}>
+			<IconButton icon={faPlus} onClick={selectFiles()} />
+		</div>
 	</div>
-	<FormButtons bind:state={state.form} onSubmit={uploadFiles} disabled={state.uploading} />
+	<FormButtons
+		bind:state={state.form}
+		onSubmit={uploadFiles}
+		disabled={state.uploading}
+		uploading={state.uploading}
+	/>
 </div>
 
 <style>

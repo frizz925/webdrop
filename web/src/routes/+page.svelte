@@ -3,7 +3,7 @@
 	import type { Session } from '$lib/models';
 	import { sluggify } from '$lib/utils';
 
-	let { sid, message } = $state({ sid: '', message: '' });
+	let { sid, message, creating } = $state({ sid: '', message: '', creating: false });
 
 	const updateInput = (evt: Event) => {
 		const el = evt.target as HTMLInputElement;
@@ -30,6 +30,7 @@
 
 	const createSession = async () => {
 		message = '';
+		creating = true;
 
 		const res = await fetch(`/api/session`, { method: 'POST' });
 		if (res.status >= 400) {
@@ -59,7 +60,11 @@
 			</button>
 		</div>
 		<div class="mt-4">
-			<button class="cursor-pointer rounded-full px-4 py-2" onclick={createSession}>
+			<button
+				class="cursor-pointer rounded-full px-4 py-2"
+				disabled={creating}
+				onclick={createSession}
+			>
 				New session
 			</button>
 		</div>
