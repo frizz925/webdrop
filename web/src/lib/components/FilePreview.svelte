@@ -44,7 +44,7 @@
 <div class="p-3">
 	<div class="relative w-36 rounded-md border px-2 pt-4 pb-2 shadow-sm dark:shadow-gray-900">
 		<button
-			class="btn-remove -top-4 -left-4 h-8 w-8 rounded-full border bg-slate-800 p-4 text-xs shadow-sm shadow-gray-900"
+			class="btn-remove -top-4 -left-4 h-8 w-8 rounded-full border bg-white p-4 text-xs shadow-sm dark:bg-gray-800 dark:shadow-gray-900"
 			onclick={() => onRemove && onRemove(file)}
 			class:flex={!!onRemove}
 			class:hidden={!onRemove || uploading}
