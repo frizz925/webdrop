@@ -10,9 +10,10 @@
 		faMicrophone,
 		faPencil
 	} from '@fortawesome/free-solid-svg-icons';
+
+	import FormButtons from './buttons/FormButtons.svelte';
+	import IconButton from './buttons/IconButton.svelte';
 	import FilePreview from './FilePreview.svelte';
-	import FormButtons from './FormButtons.svelte';
-	import IconButton from './IconButton.svelte';
 
 	interface Props {
 		sid: string;
