@@ -110,7 +110,8 @@
 		};
 		ws.onerror = (e) => {
 			console.error('WebSocket error', e);
-			connectWS();
+			console.log('Reconnecting WebSocket in 5 seconds...');
+			setTimeout(connectWS, 5000);
 		};
 		ws.onclose = () => {
 			console.log('WebSocket disconnected');
