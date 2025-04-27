@@ -20,7 +20,10 @@
 				class="cursor-pointer rounded-md p-2 transition-colors hover:bg-gray-500/20"
 				onclick={() => (shown = false)}>Cancel</button
 			>
-			<button class="cursor-pointer rounded-md bg-red-400 p-2 text-gray-50" onclick={onConfirm}>
+			<button
+				class="cursor-pointer rounded-md bg-red-400 p-2 text-gray-50 shadow shadow-transparent transition-shadow duration-150 hover:shadow-red-400"
+				onclick={onConfirm}
+			>
 				Delete
 			</button>
 		</div>

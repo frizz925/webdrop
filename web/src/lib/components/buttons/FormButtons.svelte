@@ -23,13 +23,13 @@
 <div class="flex items-center justify-start">
 	<div class="grow text-red-400">{message}</div>
 	<button
-		class="mr-2 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-red-400 text-gray-100"
+		class="btn mr-2 flex h-10 w-10 rounded-full bg-red-400 text-gray-50 shadow-sm shadow-transparent hover:shadow-red-400"
 		onclick={() => (state = FormState.None)}
 	>
 		<FontAwesomeIcon icon={faX} />
 	</button>
 	<button
-		class="btn-send bg-accent flex h-10 w-10 items-center justify-center rounded-full text-gray-100 transition-opacity"
+		class="btn btn-send bg-accent flex h-10 w-10 rounded-full text-gray-50 shadow-sm shadow-transparent hover:shadow-sky-400"
 		{disabled}
 		onclick={() => !disabled && onSubmit && onSubmit()}
 	>
@@ -38,6 +38,18 @@
 </div>
 
 <style>
+	.btn {
+		display: flex;
+		cursor: pointer;
+		align-items: center;
+		justify-content: center;
+		transition: all 150ms;
+	}
+
+	.btn:disabled {
+		cursor: default;
+	}
+
 	.btn-send:disabled {
 		opacity: 50%;
 	}
