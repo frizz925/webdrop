@@ -127,7 +127,7 @@
 	<button class="cursor-pointer text-xl font-bold" onclick={returnToTop}>WebDrop</button>
 </div>
 <div class="mt-12 bg-white dark:bg-gray-800">
-	<div class="flex items-center justify-start border-b px-4 py-1">
+	<div class="flex items-center justify-start border-b py-1 pr-2 pl-4">
 		<div class="flex grow items-center justify-start">
 			<div class="mr-2">
 				<span class="hidden font-semibold sm:inline">Session ID</span>
