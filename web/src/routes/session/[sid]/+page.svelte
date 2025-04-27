@@ -24,6 +24,7 @@
 	import TextContent from '$lib/components/contents/TextContent.svelte';
 	import VideoContent from '$lib/components/contents/VideoContent.svelte';
 
+	import ConfirmationModal from '$lib/components/modals/ConfirmationModal.svelte';
 	import type { PageData } from './$types';
 
 	const { sid } = page.params;
@@ -33,6 +34,7 @@
 
 	let sidShown = $state(false);
 	let qrcodeShown = $state(false);
+	let confirmShown = $state(false);
 	let session = $state(data.session);
 
 	const objectIDs = new Set(session.objects.map((o) => o.id));
@@ -77,7 +79,6 @@
 	};
 
 	const deleteSession = async () => {
-		// TODO: Create confirmation dialog
 		await fetch(`/api/session/${sid}`, { method: 'DELETE' });
 		localStorage.removeItem(SID_KEY);
 		exitSession();
@@ -154,8 +155,13 @@
 			<IconButton icon={faQrcode} size="xs" onClick={showQrcode} />
 			<IconButton icon={faShare} size="xs" onClick={shareLink} />
 		</div>
-		<div class="text-red-400 dark:text-red-800">
-			<IconButton icon={faTrash} size="xs" hoverBgColor="red" onClick={deleteSession} />
+		<div class="text-red-400">
+			<IconButton
+				icon={faTrash}
+				size="xs"
+				hoverBgColor="red"
+				onClick={() => (confirmShown = true)}
+			/>
 		</div>
 	</div>
 	<div class="border-b p-4">
@@ -196,4 +202,5 @@
 		{/each}
 	</div>
 </div>
-<QRCodeModal bind:shown={qrcodeShown} />
+<QRCodeModal bind:shown={qrcodeShown} text={page.url.toString()} />
+<ConfirmationModal bind:shown={confirmShown} onConfirm={deleteSession} />
