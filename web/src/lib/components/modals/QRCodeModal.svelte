@@ -15,7 +15,11 @@
 </script>
 
 <Modal bind:shown>
-	<div class="flex items-center justify-center">
-		<canvas bind:this={canvas}></canvas>
-	</div>
+	<canvas bind:this={canvas}></canvas>
+	<button
+		class="mt-2 cursor-pointer p-4 text-lg text-gray-200 transition-colors hover:bg-black/20"
+		onclick={() => (shown = false)}
+	>
+		Close
+	</button>
 </Modal>
