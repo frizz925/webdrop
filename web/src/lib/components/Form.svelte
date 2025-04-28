@@ -194,9 +194,18 @@
 		resetState();
 	};
 
+	const globalClipboard = (evt: ClipboardEvent) => {
+		const data = evt.clipboardData;
+		if (!data) return;
+		if (data.files.length > 0) return processClipboard(evt);
+		const text = data.getData('text');
+		textarea.innerText = text;
+		state = { ...state, form: FormState.Text, text };
+	};
+
 	onMount(() => {
-		document.addEventListener('paste', processClipboard);
-		return () => document.removeEventListener('paste', processClipboard);
+		document.addEventListener('paste', globalClipboard);
+		return () => document.removeEventListener('paste', globalClipboard);
 	});
 </script>
 
