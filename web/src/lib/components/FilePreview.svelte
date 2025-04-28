@@ -12,14 +12,13 @@
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
 	interface Props {
-		file?: File;
-		name: string;
-		type: string;
+		file: File;
 		uploading?: boolean;
-		onRemove?: (file?: File) => void;
+		onRemove?: (file: File) => void;
 	}
 
-	const { file, name, type, uploading = false, onRemove }: Props = $props();
+	const { file, uploading = false, onRemove }: Props = $props();
+	const { name, type } = file;
 	let imageSrc: string | undefined = $state();
 
 	if (file && file.type.startsWith('image/')) {

@@ -138,8 +138,7 @@
 		updateFiles(files, FormState.File);
 	};
 
-	const removeFile = (file?: File) => {
-		if (!file) return;
+	const removeFile = (file: File) => {
 		const files = state.files.filter((other) => other !== file);
 		const form = files.length <= 0 ? FormState.None : state.form;
 		state = { ...state, files, form };
@@ -252,13 +251,7 @@
 <div class="flex flex-col" class:hidden={!stateIsFile(state.form)}>
 	<div class="mb-4 flex flex-wrap items-center justify-center">
 		{#each state.files as file (file)}
-			<FilePreview
-				{file}
-				name={file.name}
-				type={file.type}
-				uploading={state.uploading}
-				onRemove={removeFile}
-			/>
+			<FilePreview {file} uploading={state.uploading} onRemove={removeFile} />
 		{/each}
 		<div class:hidden={state.uploading}>
 			<IconButton icon={faPlus} onClick={selectFiles()} />
