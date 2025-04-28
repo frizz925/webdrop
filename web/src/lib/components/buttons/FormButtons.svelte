@@ -1,23 +1,22 @@
 <script lang="ts">
-	import { FormState } from '$lib/form';
 	import { faPaperPlane, faX, type IconDefinition } from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
 	interface Props {
-		state: FormState;
 		icon?: IconDefinition;
 		message?: string;
 		disabled?: boolean;
 		uploading?: boolean;
+		onCancel?: () => void;
 		onSubmit?: () => void;
 	}
 
 	let {
-		state = $bindable(FormState.None),
 		icon = faPaperPlane,
 		message = '',
 		disabled = false,
 		uploading = false,
+		onCancel,
 		onSubmit
 	}: Props = $props();
 </script>
@@ -27,7 +26,7 @@
 	<button
 		class="btn mr-2 flex h-10 w-10 rounded-full bg-red-400 text-gray-50 shadow-sm shadow-transparent hover:shadow-red-400"
 		disabled={uploading}
-		onclick={() => (state = FormState.None)}
+		onclick={() => !uploading && onCancel && onCancel()}
 	>
 		<FontAwesomeIcon icon={faX} />
 	</button>

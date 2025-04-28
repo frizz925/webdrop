@@ -12,6 +12,7 @@
 		faPlus
 	} from '@fortawesome/free-solid-svg-icons';
 
+	import { onMount } from 'svelte';
 	import FormButtons from './buttons/FormButtons.svelte';
 	import IconButton from './buttons/IconButton.svelte';
 	import FilePreview from './FilePreview.svelte';
@@ -48,6 +49,8 @@
 
 	let { sid, onSubmit }: Props = $props();
 	let state: State = $state(initialState());
+	let textarea: HTMLDivElement;
+	let urlInput: HTMLInputElement;
 	let fileInput: HTMLInputElement;
 
 	const acceptMap = {
@@ -61,6 +64,9 @@
 	};
 
 	const resetState = () => {
+		textarea.innerHTML = '';
+		urlInput.value = '';
+		fileInput.value = '';
 		state = initialState();
 	};
 
@@ -72,23 +78,22 @@
 		return files;
 	};
 
-	const updateFiles = (files: FileList | File[], nextState = FormState.File) => {
+	const updateFiles = (files: FileList | File[], nextState?: FormState) => {
 		if (files.length <= 0) return;
 		if (files instanceof FileList) files = fileListToArray(files);
-		state = { ...state, form: nextState, files };
+		files = nextState ? [...state.files, ...files] : files;
+		if (nextState) state = { ...state, form: nextState, files };
+		else state.files = files;
 	};
 
 	const selectFiles = (nextState?: FormState) => () => {
 		nextState = nextState || state.form;
-		const prevState = state.form;
 		fileInput.value = '';
 		fileInput.accept = acceptMap[nextState];
 		fileInput.onchange = (evt) => {
 			const el = evt.target as HTMLInputElement;
 			if (!el.files) return;
-			const files =
-				prevState === nextState ? [...state.files, ...fileListToArray(el.files)] : el.files;
-			updateFiles(files, nextState);
+			updateFiles(el.files, nextState);
 		};
 		fileInput.click();
 	};
@@ -109,6 +114,7 @@
 	const updateText = (evt: Event) => {
 		const el = evt.target as HTMLDivElement;
 		const text = el.innerText.trim();
+		if (text.length <= 0) el.innerHTML = '';
 		state.text = text;
 	};
 
@@ -124,12 +130,12 @@
 	};
 
 	const processClipboard = (evt: ClipboardEvent) => {
-		const el = evt.target as HTMLDivElement;
-		if (el.innerText.trim().length > 0) return;
+		const text = textarea.innerText.trim();
+		if (text.length > 0) return;
 		const files = evt.clipboardData?.files;
 		if (!files || files.length <= 0) return;
 		evt.preventDefault();
-		updateFiles(files);
+		updateFiles(files, FormState.File);
 	};
 
 	const removeFile = (file?: File) => {
@@ -187,6 +193,11 @@
 		for (const file of files) await uploadFile(file);
 		resetState();
 	};
+
+	onMount(() => {
+		document.addEventListener('paste', processClipboard);
+		return () => document.removeEventListener('paste', processClipboard);
+	});
 </script>
 
 <input type="file" class="hidden" multiple bind:this={fileInput} />
@@ -207,31 +218,31 @@
 	<div
 		class="textarea mb-4"
 		oninput={updateText}
-		onpaste={processClipboard}
 		contenteditable="plaintext-only"
+		bind:this={textarea}
 	></div>
 	<FormButtons
-		bind:state={state.form}
 		message={state.message}
 		disabled={!textInputValid(state.text)}
 		uploading={state.uploading}
+		onCancel={resetState}
 		onSubmit={submitText}
 	/>
 </div>
 <div class="flex flex-col" class:hidden={state.form !== FormState.Link}>
-	<input type="text" placeholder="URL" class="mb-4" oninput={updateURL} />
+	<input type="text" placeholder="URL" class="mb-4" oninput={updateURL} bind:this={urlInput} />
 	<input type="text" placeholder="Title (optional)" class="mb-4" bind:value={state.url.title} />
 	<FormButtons
-		bind:state={state.form}
 		message={state.message}
 		disabled={!textInputValid(state.url.value)}
 		uploading={state.uploading}
+		onCancel={resetState}
 		onSubmit={submitURL}
 	/>
 </div>
 <div class="flex flex-col" class:hidden={!stateIsFile(state.form)}>
 	<div class="mb-4 flex flex-wrap items-center justify-center">
-		{#each state.files as file (file.name)}
+		{#each state.files as file (file)}
 			<FilePreview
 				{file}
 				name={file.name}
@@ -245,10 +256,10 @@
 		</div>
 	</div>
 	<FormButtons
-		bind:state={state.form}
-		onSubmit={uploadFiles}
 		disabled={state.uploading}
 		uploading={state.uploading}
+		onCancel={resetState}
+		onSubmit={uploadFiles}
 	/>
 </div>
 
