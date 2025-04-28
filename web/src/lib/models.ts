@@ -13,7 +13,7 @@ export interface TextContent extends Content {
 
 export interface LinkContent extends Content {
 	url: string;
-	title: string;
+	title?: string;
 }
 
 export interface FileContent extends Content {

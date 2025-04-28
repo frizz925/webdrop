@@ -27,7 +27,7 @@
 		text: string;
 		url: {
 			value: string;
-			title: string;
+			title?: string;
 		};
 		files: File[];
 		message: string;
@@ -38,10 +38,7 @@
 		({
 			form: FormState.None,
 			text: '',
-			url: {
-				value: '',
-				title: ''
-			},
+			url: { value: '' },
 			files: [],
 			message: '',
 			uploading: false
@@ -198,8 +195,14 @@
 		if (!data) return;
 		if (data.files.length > 0) return processClipboard(evt);
 		const text = data.getData('text');
-		textarea.innerText = text;
-		state = { ...state, form: FormState.Text, text };
+		try {
+			new URL(text);
+			urlInput.value = text;
+			state = { ...state, form: FormState.Link, url: { value: text } };
+		} catch {
+			textarea.innerText = text;
+			state = { ...state, form: FormState.Text, text };
+		}
 	};
 
 	onMount(() => {
