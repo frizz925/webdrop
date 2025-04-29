@@ -96,6 +96,7 @@ jobs:
       run: mkdir -p web/build
 
     - name: Download web artifact
+      uses: actions/download-artifact@v4
       with:
         name: static-web
         path: web/build
