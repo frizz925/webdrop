@@ -4,10 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-root
-  cancel-in-progress: true
+  workflow_dispatch: {}
 
 jobs:
   build_web:
