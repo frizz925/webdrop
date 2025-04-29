@@ -127,24 +127,22 @@ jobs:
     - name: Create archive (Linux)
       if: matrix.platform == 'linux'
       run: |
-        export ARCHIVE=webdrop-${{ github.ref }}-${{ matrix.arch }}.tar.gz
+        export ARCHIVE=webdrop-${{ github.ref_name }}-${{ matrix.arch }}.tar.gz
         tar -cvzf $ARCHIVE webdrop web
 
     - name: Create archive (Windows)
       if: matrix.platform == 'windows'
       run: |
-        export ARCHIVE=webdrop-${{ github.ref }}-${{ matrix.arch }}.zip
+        export ARCHIVE=webdrop-${{ github.ref_name }}-${{ matrix.arch }}.zip
         zip -rv $ARCHIVE webdrop.exe web
 
     - name: Create archive (macOS)
       if: matrix.platform == 'macos'
       run: |
-        export ARCHIVE=webdrop-${{ github.ref }}-${{ matrix.arch }}.zip
+        export ARCHIVE=webdrop-${{ github.ref_name }}-${{ matrix.arch }}.zip
         zip -rv $ARCHIVE webdrop web
     
     - name: Upload release
       uses: softprops/action-gh-release@v2
       with:
-        tag: v0.1.0
-        tag_name: v0.1.0
         files: ${{ env.ARCHIVE }}
