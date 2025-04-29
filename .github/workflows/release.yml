@@ -94,24 +94,20 @@ jobs:
 
     strategy:
       matrix:
-        artifact: 
-          - webdrop-linux-amd64
-          - webdrop-windows-amd64
-          - webdrop-macos-arm64
-          - webdrop-macos-amd64
+        arch: 
+          - linux-amd64
+          - windows-amd64
+          - macos-arm64
+          - macos-amd64
         include:
-        - artifact: webdrop-linux-amd64
+        - arch: linux-amd64
           platform: linux
-          archive: webdrop-linux-amd64.tar.gz
-        - artifact: webdrop-windows-amd64
+        - arch: windows-amd64
           platform: windows
-          archive: webdrop-windows-amd64.zip
-        - artifact: webdrop-macos-arm64
+        - arch: macos-arm64
           platform: macos
-          archive: webdrop-macos-arm64.zip
-        - artifact: webdrop-macos-amd64
+        - arch: macos-amd64
           platform: macos
-          archive: webdrop-macos-amd64.zip
 
     steps:
     - name: Create web directories
@@ -126,21 +122,29 @@ jobs:
     - name: Download server artifact
       uses: actions/download-artifact@v4
       with:
-        name: ${{ matrix.artifact }}
+        name: webdrop-${{ matrix.arch }}
 
     - name: Create archive (Linux)
       if: matrix.platform == 'linux'
-      run: tar -cvzf ${{ matrix.archive }} webdrop web
+      run: |
+        export ARCHIVE=webdrop-${{ github.ref }}-${{ matrix.arch }}.tar.gz
+        tar -cvzf $ARCHIVE webdrop web
 
     - name: Create archive (Windows)
       if: matrix.platform == 'windows'
-      run: zip -rv ${{ matrix.archive }} webdrop.exe web
+      run: |
+        export ARCHIVE=webdrop-${{ github.ref }}-${{ matrix.arch }}.zip
+        zip -rv $ARCHIVE webdrop.exe web
 
     - name: Create archive (macOS)
       if: matrix.platform == 'macos'
-      run: zip -rv ${{ matrix.archive }} webdrop web
+      run: |
+        export ARCHIVE=webdrop-${{ github.ref }}-${{ matrix.arch }}.zip
+        zip -rv $ARCHIVE webdrop web
     
     - name: Upload release
       uses: softprops/action-gh-release@v2
       with:
-        files: ${{ matrix.archive }}
+        tag: v0.1.0
+        tag_name: v0.1.0
+        files: ${{ env.ARCHIVE }}
