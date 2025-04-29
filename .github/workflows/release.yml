@@ -70,7 +70,7 @@ jobs:
         key: ${{ matrix.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Build
-      run: cargo build -r --verbose
+      run: cargo build -r
 
     - name: Upload release artifact
       uses: actions/upload-artifact@v4
@@ -80,16 +80,21 @@ jobs:
 
   release:
     name: Release
-    needs: [build_web, build_server]
+    needs: 
+    - build_web
+    - build_server
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
 
     strategy:
       matrix:
         artifact:
-          - webdrop-linux-amd64
-          - webdrop-windows-amd64
-          - webdrop-macos-arm64
-          - webdrop-macos-amd64
+        - webdrop-linux-amd64
+        - webdrop-windows-amd64
+        - webdrop-macos-arm64
+        - webdrop-macos-amd64
 
     steps:
     - name: Create web directories
