@@ -146,16 +146,10 @@ mod tests {
 
     use super::*;
 
-    const STORAGE_DIR: Option<&str> = Some("storage/test");
-
     #[tokio::test]
     async fn put_and_get_object() -> Result<()> {
-        let repo = if let Some(dir) = STORAGE_DIR {
-            ObjectFsRepository::new(dir)
-        } else {
-            let tmpdir = TempDir::new()?;
-            ObjectFsRepository::new(tmpdir.path())
-        };
+        let tmpdir = TempDir::new()?;
+        let repo = ObjectFsRepository::new(tmpdir.path());
         let upload = Upload {
             mime: "text/plain".to_owned(),
             content: Value::Null,
