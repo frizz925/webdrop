@@ -43,16 +43,12 @@ jobs:
         include:
         - os: ubuntu-latest
           artifact: webdrop-linux-amd64
-          binary: webdrop
         - os: windows-latest
           artifact: webdrop-windows-amd64
-          binary: webdrop.exe
         - os: macos-latest
           artifact: webdrop-macos-arm64
-          binary: webdrop
         - os: macos-13
           artifact: webdrop-macos-amd64
-          binary: webdrop
 
     runs-on: ${{ matrix.os }}
 
@@ -72,11 +68,23 @@ jobs:
     - name: Build
       run: cargo build -r
 
-    - name: Upload release artifact
+    - name: Upload release artifact (Windows)
+      if: runner.os == 'Windows'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact }}
-        path: target/release/${{ matrix.binary }}
+        path: |
+          storage
+          target/release/webdrop.exe
+
+    - name: Upload release artifact
+      if: runner.os != 'Windows'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact }}
+        path: |
+          storage
+          target/release/webdrop
 
   release:
     name: Release
@@ -90,11 +98,24 @@ jobs:
 
     strategy:
       matrix:
-        artifact:
-        - webdrop-linux-amd64
-        - webdrop-windows-amd64
-        - webdrop-macos-arm64
-        - webdrop-macos-amd64
+        artifact: 
+          - webdrop-linux-amd64
+          - webdrop-windows-amd64
+          - webdrop-macos-arm64
+          - webdrop-macos-amd64
+        include:
+        - artifact: webdrop-linux-amd64
+          platform: linux
+          archive: webdrop-linux-amd64.tar.gz
+        - artifact: webdrop-windows-amd64
+          platform: windows
+          archive: webdrop-windows-amd64.zip
+        - artifact: webdrop-macos-arm64
+          platform: macos
+          archive: webdrop-macos-arm64.zip
+        - artifact: webdrop-macos-amd64
+          platform: macos
+          archive: webdrop-macos-amd64.zip
 
     steps:
     - name: Create web directories
@@ -110,6 +131,20 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: ${{ matrix.artifact }}
+
+    - name: Create archive (Linux)
+      if: matrix.platform == 'linux'
+      run: tar -cvzf ${{ matrix.archive }} webdrop web storage
+
+    - name: Create archive (Windows)
+      if: matrix.platform == 'windows'
+      run: zip -rv ${{ matrix.archive }} webdrop.exe web storage
+
+    - name: Create archive (macOS)
+      if: matrix.platform == 'macos'
+      run: zip -rv ${{ matrix.archive }} webdrop web storage
     
     - name: Upload release
       uses: softprops/action-gh-release@v2
+      with:
+        files: ${{ matrix.archive }}
