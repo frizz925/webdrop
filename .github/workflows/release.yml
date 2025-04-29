@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - 'v*.*.*'
-  pull_request:
-    branches: [ "develop" ]
 
 jobs:
   build_web:
@@ -75,14 +73,18 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact }}
-        path: target/release/webdrop.exe
+        path: |
+          storage
+          target/release/webdrop.exe
 
     - name: Upload release artifact
       if: runner.os != 'Windows'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact }}
-        path: target/release/webdrop
+        path: |
+          storage
+          target/release/webdrop
 
   release:
     name: Release
@@ -132,20 +134,17 @@ jobs:
 
     - name: Create archive (Linux)
       if: matrix.platform == 'linux'
-      run: tar -cvzf ${{ matrix.archive }} webdrop web
+      run: tar -cvzf ${{ matrix.archive }} webdrop web storage
 
     - name: Create archive (Windows)
       if: matrix.platform == 'windows'
-      run: zip -rv ${{ matrix.archive }} webdrop.exe web
+      run: zip -rv ${{ matrix.archive }} webdrop.exe web storage
 
     - name: Create archive (macOS)
       if: matrix.platform == 'macos'
-      run: zip -rv ${{ matrix.archive }} webdrop web
+      run: zip -rv ${{ matrix.archive }} webdrop web storage
     
     - name: Upload release
       uses: softprops/action-gh-release@v2
       with:
-        name: 'v0.1.0'
-        tag_name: 'v0.1.0'
-        make_latest: true
         files: ${{ matrix.archive }}
