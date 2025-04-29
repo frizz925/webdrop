@@ -73,18 +73,14 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact }}
-        path: |
-          storage
-          target/release/webdrop.exe
+        path: target/release/webdrop.exe
 
     - name: Upload release artifact
       if: runner.os != 'Windows'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact }}
-        path: |
-          storage
-          target/release/webdrop
+        path: target/release/webdrop
 
   release:
     name: Release
@@ -134,15 +130,15 @@ jobs:
 
     - name: Create archive (Linux)
       if: matrix.platform == 'linux'
-      run: tar -cvzf ${{ matrix.archive }} webdrop web storage
+      run: tar -cvzf ${{ matrix.archive }} webdrop web
 
     - name: Create archive (Windows)
       if: matrix.platform == 'windows'
-      run: zip -rv ${{ matrix.archive }} webdrop.exe web storage
+      run: zip -rv ${{ matrix.archive }} webdrop.exe web
 
     - name: Create archive (macOS)
       if: matrix.platform == 'macos'
-      run: zip -rv ${{ matrix.archive }} webdrop web storage
+      run: zip -rv ${{ matrix.archive }} webdrop web
     
     - name: Upload release
       uses: softprops/action-gh-release@v2

@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf, str::FromStr, sync::Arc};
+use std::{env, io::ErrorKind, path::PathBuf, str::FromStr, sync::Arc};
 
 use tokio::net::TcpListener;
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
@@ -26,6 +26,13 @@ async fn main() {
                 .from_env_lossy(),
         )
         .init();
+
+    match std::fs::metadata(STORAGE_DIR) {
+        Ok(meta) if !meta.is_dir() => panic!("Storage directory is not a directory"),
+        Ok(_) => (),
+        Err(e) if e.kind() == ErrorKind::NotFound => std::fs::create_dir(STORAGE_DIR).unwrap(),
+        Err(e) => panic!("Failed to check for storage directory: {e}"),
+    }
 
     let repository = ConcreteServiceRepository::new(STORAGE_DIR);
     let service = SessionService::new(repository, websocket_service_factory);
