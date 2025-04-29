@@ -75,14 +75,14 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact }}
-        path: target/release/${{ matrix.binary }}.exe
+        path: target/release/webdrop.exe
 
     - name: Upload release artifact
       if: runner.os != 'Windows'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact }}
-        path: target/release/${{ matrix.binary }}
+        path: target/release/webdrop
 
   release:
     name: Release
@@ -96,19 +96,23 @@ jobs:
 
     strategy:
       matrix:
-        platform: [linux, windows, macos]
+        artifact: 
+          - webdrop-linux-amd64
+          - webdrop-windows-amd64
+          - webdrop-macos-arm64
+          - webdrop-macos-amd64
         include:
-        - platform: linux
-          artifact: webdrop-linux-amd64
+        - artifact: webdrop-linux-amd64
+          platform: linux
           archive: webdrop-linux-amd64.tar.gz
-        - platform: windows
-          artifact: webdrop-windows-amd64
+        - artifact: webdrop-windows-amd64
+          platform: windows
           archive: webdrop-windows-amd64.zip
-        - platform: macos
-          artifact: webdrop-macos-arm64
+        - artifact: webdrop-macos-arm64
+          platform: macos
           archive: webdrop-macos-arm64.zip
-        - platform: macos
-          artifact: webdrop-macos-amd64
+        - artifact: webdrop-macos-amd64
+          platform: macos
           archive: webdrop-macos-amd64.zip
 
     steps:
