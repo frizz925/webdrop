@@ -128,6 +128,7 @@ jobs:
       if: matrix.platform == 'linux'
       run: |
         export ARCHIVE=webdrop-${{ github.ref_name }}-${{ matrix.arch }}.tar.gz
+        chmod +x webdrop
         tar -cvzf $ARCHIVE webdrop web
         echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
 
@@ -142,6 +143,7 @@ jobs:
       if: matrix.platform == 'macos'
       run: |
         export ARCHIVE=webdrop-${{ github.ref_name }}-${{ matrix.arch }}.zip
+        chmod +x webdrop
         zip -rv $ARCHIVE webdrop web
         echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
     
