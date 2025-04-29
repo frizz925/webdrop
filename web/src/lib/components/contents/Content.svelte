@@ -2,18 +2,18 @@
 	import type { FileObject, ObjectID, SessionID } from '$lib/models';
 	import { faTrash } from '@fortawesome/free-solid-svg-icons';
 	import { format, formatDistanceToNowStrict } from 'date-fns';
-	import { onMount } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import IconButton from '../buttons/IconButton.svelte';
 
 	export interface PartialProps {
 		sid: SessionID;
 		object: FileObject;
-		children?: any;
+		children?: Snippet;
 		onDelete?: (oid: ObjectID) => void;
 	}
 
 	interface Props extends PartialProps {
-		children?: any;
+		children?: Snippet;
 	}
 
 	const { sid, object, children, onDelete }: Props = $props();
@@ -32,7 +32,7 @@
 
 	const deleteObject = async () => {
 		await fetch(`/api/session/${sid}/${id}`, { method: 'DELETE' });
-		onDelete && onDelete(id);
+		if (onDelete) onDelete(id);
 	};
 
 	onMount(() => {
@@ -43,7 +43,7 @@
 </script>
 
 <div class="border-b">
-	{@render children()}
+	{@render children?.()}
 	<div class="text-sub mb-2 flex items-center justify-start pr-2 pl-4 text-sm">
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="grow">

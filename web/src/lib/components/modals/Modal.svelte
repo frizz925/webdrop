@@ -1,10 +1,12 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+
 	export interface PartialProps {
 		shown: boolean;
 	}
 
 	interface Props extends PartialProps {
-		children: any;
+		children: Snippet;
 	}
 
 	let { shown = $bindable(), children }: Props = $props();
@@ -17,9 +19,13 @@
 	class:invisible={!shown}
 	onclick={() => (shown = false)}
 >
-	<div class="mt-24 mb-8 flex flex-col items-center justify-start px-4">
+	<div
+		class="mb-8 flex flex-col items-center justify-start px-4 transition-all duration-300"
+		class:mt-16={!shown}
+		class:mt-24={shown}
+	>
 		<div class="contents cursor-default" onclick={(evt) => evt.stopPropagation()}>
-			{@render children()}
+			{@render children?.()}
 		</div>
 	</div>
 </div>

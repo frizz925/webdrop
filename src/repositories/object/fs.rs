@@ -144,18 +144,16 @@ mod tests {
     use serde_json::Value;
     use temp_dir::TempDir;
 
-    use super::*;
+    use crate::repositories::session::{SessionFsRepository, SessionRepository};
 
-    const STORAGE_DIR: Option<&str> = Some("storage/test");
+    use super::*;
 
     #[tokio::test]
     async fn put_and_get_object() -> Result<()> {
-        let repo = if let Some(dir) = STORAGE_DIR {
-            ObjectFsRepository::new(dir)
-        } else {
-            let tmpdir = TempDir::new()?;
-            ObjectFsRepository::new(tmpdir.path())
-        };
+        let tmpdir = TempDir::new()?;
+        let dir = tmpdir.path();
+        let sid = SessionFsRepository::new(dir).create().await?.id;
+        let repo = ObjectFsRepository::new(dir.join(sid.to_string()));
         let upload = Upload {
             mime: "text/plain".to_owned(),
             content: Value::Null,

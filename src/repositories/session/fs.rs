@@ -97,16 +97,10 @@ mod tests {
 
     use super::*;
 
-    const STORAGE_DIR: Option<&str> = Some("storage");
-
     #[tokio::test]
     async fn create_and_get_session() -> Result<()> {
-        let repo = if let Some(dir) = STORAGE_DIR {
-            SessionFsRepository::new(dir)
-        } else {
-            let tmpdir = TempDir::new()?;
-            SessionFsRepository::new(tmpdir.path())
-        };
+        let tmpdir = TempDir::new()?;
+        let repo = SessionFsRepository::new(tmpdir.path());
         let sid = repo.create().await?.id;
         assert!(repo.exists(&sid).await?);
         let sess = repo.get(&sid).await?;
