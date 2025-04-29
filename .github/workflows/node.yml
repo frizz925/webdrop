@@ -2,12 +2,13 @@ name: Node
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
 
 jobs:
-  build:
+  check:
+    name: Check web
     runs-on: ubuntu-latest
     defaults:
       run:
