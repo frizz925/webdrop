@@ -129,18 +129,21 @@ jobs:
       run: |
         export ARCHIVE=webdrop-${{ github.ref_name }}-${{ matrix.arch }}.tar.gz
         tar -cvzf $ARCHIVE webdrop web
+        echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
 
     - name: Create archive (Windows)
       if: matrix.platform == 'windows'
       run: |
         export ARCHIVE=webdrop-${{ github.ref_name }}-${{ matrix.arch }}.zip
         zip -rv $ARCHIVE webdrop.exe web
+        echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
 
     - name: Create archive (macOS)
       if: matrix.platform == 'macos'
       run: |
         export ARCHIVE=webdrop-${{ github.ref_name }}-${{ matrix.arch }}.zip
         zip -rv $ARCHIVE webdrop web
+        echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
     
     - name: Upload release
       uses: softprops/action-gh-release@v2
