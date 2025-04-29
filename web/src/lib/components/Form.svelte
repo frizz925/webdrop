@@ -165,7 +165,7 @@
 			body: data
 		});
 		if (res.status >= 400) {
-			state.message = 'Failed to upload';
+			state = { ...state, uploading: false, message: 'Failed to upload' };
 			throw res;
 		}
 		const dto: models.FileObjectDto<models.FileContent> = await res.json();
