@@ -35,6 +35,7 @@
 		const res = await fetch(`/api/session`, { method: 'POST' });
 		if (res.status >= 400) {
 			message = 'Unknown error';
+			creating = false;
 			return;
 		}
 

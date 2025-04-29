@@ -17,18 +17,26 @@
 </script>
 
 <Content {sid} object={obj} {onDelete}>
-	<div class="flex items-center justify-start px-4 pt-4">
+	<div class="flex items-center justify-start overflow-hidden px-4 pt-4">
 		<div class="text-sm">
 			<FontAwesomeIcon icon={download ? faDownload : faLink} />
 		</div>
 		{#if download}
-			<a href={url} target="_blank" class="text-accent ml-2" download>
+			<a href={url} target="_blank" class="link text-accent ml-2" download>
 				{title}
 			</a>
 		{:else}
-			<a href={url} target="_blank" class="text-accent ml-2">
+			<a href={url} target="_blank" class="link text-accent ml-2">
 				{title}
 			</a>
 		{/if}
 	</div>
 </Content>
+
+<style>
+	.link {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+</style>
