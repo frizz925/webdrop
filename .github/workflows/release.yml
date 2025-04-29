@@ -1,0 +1,82 @@
+name: Draft new release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch: {}
+
+jobs:
+  build_web:
+    name: Build web
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+
+    - name: Install and build static web
+      working-directory: ./web
+      run: pnpm install && pnpm run build
+
+    - name: Upload static web
+      uses: actions/upload-artifact@v4
+      with:
+        name: static-web
+        path: web/build
+
+  build_server:
+    name: Build server ${{ matrix.os }}
+    needs: build_web
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-13]
+        include:
+        - os: ubuntu-latest
+          artifact: webdrop-linux-x64
+          binary: webdrop
+        - os: windows-latest
+          artifact: webdrop-windows-x64
+          binary: webdrop.exe
+        - os: macos-latest
+          artifact: webdrop-macos-arm64
+          binary: webdrop
+        - os: macos-13
+          artifact: webdrop-macos-x64
+          binary: webdrop
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Build
+      run: cargo build -r --verbose
+
+    - name: Upload release artifact
+      if: runner.os
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact }}
+        path: target/release/${{ matrix.binary }}
