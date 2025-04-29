@@ -1,12 +1,9 @@
-name: Draft new release
+name: Upload new release
 
 on:
   push:
     tags:
       - 'v*.*.*'
-  pull_request:
-    branches:
-      - 'develop'
 
 jobs:
   build_web:
@@ -39,7 +36,6 @@ jobs:
 
   build_server:
     name: Build server ${{ matrix.os }}
-    needs: build_web
 
     strategy:
       matrix:
@@ -84,12 +80,16 @@ jobs:
 
   release:
     name: Release
-    needs: build_server
+    needs: [build_web, build_server]
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        artifact: [webdrop-linux-amd64]
+        artifact:
+          - webdrop-linux-amd64
+          - webdrop-windows-amd64
+          - webdrop-macos-arm64
+          - webdrop-macos-amd64
 
     steps:
     - name: Create web directories
@@ -106,5 +106,5 @@ jobs:
       with:
         name: ${{ matrix.artifact }}
     
-    - name: Display structure of downloaded files
-      run: ls -R
+    - name: Upload release
+      uses: softprops/action-gh-release@v2
