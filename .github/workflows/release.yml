@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
-  workflow_dispatch: {}
+  pull_request: {}
 
 jobs:
   build_web:
@@ -44,16 +44,16 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest, macos-13]
         include:
         - os: ubuntu-latest
-          artifact: webdrop-linux-x64
+          artifact: webdrop-linux-amd64
           binary: webdrop
         - os: windows-latest
-          artifact: webdrop-windows-x64
+          artifact: webdrop-windows-amd64
           binary: webdrop.exe
         - os: macos-latest
           artifact: webdrop-macos-arm64
           binary: webdrop
         - os: macos-13
-          artifact: webdrop-macos-x64
+          artifact: webdrop-macos-amd64
           binary: webdrop
 
     runs-on: ${{ matrix.os }}
@@ -69,14 +69,39 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ matrix.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Build
       run: cargo build -r --verbose
 
     - name: Upload release artifact
-      if: runner.os
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact }}
         path: target/release/${{ matrix.binary }}
+
+  release:
+    name: Release
+    needs: build_server
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        artifact: [webdrop-linux-amd64]
+
+    steps:
+    - name: Create web directories
+      run: mkdir -p web/build
+
+    - name: Download web artifact
+      with:
+        name: static-web
+        path: web/build
+
+    - name: Download server artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ matrix.artifact }}
+    
+    - name: Display structure of downloaded files
+      run: ls -R
