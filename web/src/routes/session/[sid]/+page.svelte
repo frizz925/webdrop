@@ -110,7 +110,7 @@
 			if (typeof data !== 'string') return;
 			const evt = JSON.parse(data as string) as NotificationEvent;
 			const handler = notificationHandlers[evt.name];
-			handler && handler(evt);
+			if (handler) handler(evt);
 		};
 		ws.onerror = (e) => {
 			console.error('WebSocket error', e);

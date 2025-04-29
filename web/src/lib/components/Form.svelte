@@ -46,7 +46,6 @@
 
 	let { sid, onSubmit }: Props = $props();
 	let state: State = $state(initialState());
-	let textarea: HTMLDivElement;
 	let urlInput: HTMLInputElement;
 	let fileInput: HTMLInputElement;
 
@@ -61,7 +60,6 @@
 	};
 
 	const resetState = () => {
-		textarea.innerHTML = '';
 		urlInput.value = '';
 		fileInput.value = '';
 		state = initialState();
@@ -108,13 +106,6 @@
 		return !state.uploading && value.trim().length > 0;
 	};
 
-	const updateText = (evt: Event) => {
-		const el = evt.target as HTMLDivElement;
-		const text = el.innerText.trim();
-		if (text.length <= 0) el.innerHTML = '';
-		state.text = text;
-	};
-
 	const updateURL = (evt: Event) => {
 		const el = evt.target as HTMLInputElement;
 		const value = el.value.trim();
@@ -127,8 +118,7 @@
 	};
 
 	const processClipboard = (evt: ClipboardEvent) => {
-		const text = textarea.innerText.trim();
-		if (text.length > 0) return;
+		if (state.text.length > 0) return;
 		const files = evt.clipboardData?.files;
 		if (!files || files.length <= 0) return;
 		evt.preventDefault();
@@ -200,7 +190,6 @@
 			urlInput.value = text;
 			state = { ...state, form: FormState.Link, url: { value: text } };
 		} catch {
-			textarea.innerText = text;
 			state = { ...state, form: FormState.Text, text };
 		}
 	};
@@ -226,12 +215,15 @@
 	</div>
 </div>
 <div class:hidden={state.form !== FormState.Text}>
-	<div
-		class="textarea mb-4"
-		oninput={updateText}
-		contenteditable="plaintext-only"
-		bind:this={textarea}
-	></div>
+	<div class="relative">
+		<div class="textarea mb-4" contenteditable="plaintext-only" bind:innerText={state.text}></div>
+		<div
+			class="pointer-events-none absolute top-0 left-0 text-gray-500"
+			class:hidden={textInputValid(state.text)}
+		>
+			Enter your message here
+		</div>
+	</div>
 	<FormButtons
 		message={state.message}
 		disabled={!textInputValid(state.text)}
@@ -278,10 +270,5 @@
 		box-shadow: none;
 		overflow: auto;
 		resize: none;
-	}
-
-	.textarea:empty::before {
-		content: 'Enter your message here';
-		color: var(--color-gray-500);
 	}
 </style>
