@@ -83,7 +83,7 @@ jobs:
         path: target/release/webdrop
 
   release:
-    name: Release
+    name: Release ${{ matrix.arch }}
     needs: 
     - build_web
     - build_server
