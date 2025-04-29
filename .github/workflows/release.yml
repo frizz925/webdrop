@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  pull_request:
+    branches: [ "develop" ]
 
 jobs:
   build_web:
@@ -43,16 +45,12 @@ jobs:
         include:
         - os: ubuntu-latest
           artifact: webdrop-linux-amd64
-          binary: webdrop
         - os: windows-latest
           artifact: webdrop-windows-amd64
-          binary: webdrop.exe
         - os: macos-latest
           artifact: webdrop-macos-arm64
-          binary: webdrop
         - os: macos-13
           artifact: webdrop-macos-amd64
-          binary: webdrop
 
     runs-on: ${{ matrix.os }}
 
@@ -72,7 +70,15 @@ jobs:
     - name: Build
       run: cargo build -r
 
+    - name: Upload release artifact (Windows)
+      if: runner.os == 'Windows'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact }}
+        path: target/release/${{ matrix.binary }}.exe
+
     - name: Upload release artifact
+      if: runner.os != 'Windows'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact }}
@@ -90,11 +96,20 @@ jobs:
 
     strategy:
       matrix:
-        artifact:
-        - webdrop-linux-amd64
-        - webdrop-windows-amd64
-        - webdrop-macos-arm64
-        - webdrop-macos-amd64
+        platform: [linux, windows, macos]
+        include:
+        - platform: linux
+          artifact: webdrop-linux-amd64
+          archive: webdrop-linux-amd64.tar.gz
+        - platform: windows
+          artifact: webdrop-windows-amd64
+          archive: webdrop-windows-amd64.zip
+        - platform: macos
+          artifact: webdrop-macos-arm64
+          archive: webdrop-macos-arm64.zip
+        - platform: macos
+          artifact: webdrop-macos-amd64
+          archive: webdrop-macos-amd64.zip
 
     steps:
     - name: Create web directories
@@ -110,6 +125,23 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: ${{ matrix.artifact }}
+
+    - name: Create archive (Linux)
+      if: matrix.platform == 'linux'
+      run: tar -cvzf ${{ matrix.archive }} webdrop web
+
+    - name: Create archive (Windows)
+      if: matrix.platform == 'windows'
+      run: zip -rv ${{ matrix.archive }} webdrop.exe web
+
+    - name: Create archive (macOS)
+      if: matrix.platform == 'macos'
+      run: zip -rv ${{ matrix.archive }} webdrop web
     
     - name: Upload release
       uses: softprops/action-gh-release@v2
+      with:
+        name: 'v0.1.0'
+        tag_name: 'v0.1.0'
+        make_latest: true
+        files: ${{ matrix.archive }}
