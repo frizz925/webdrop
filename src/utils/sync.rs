@@ -72,8 +72,8 @@ impl<T> Subscriber<T> {
 
 impl<T> Drop for Subscriber<T> {
     fn drop(&mut self) {
-        let mut dispatcher = self.pubsub.write().unwrap();
-        dispatcher.channels.remove(&self.id);
+        let mut pubsub = self.pubsub.write().unwrap();
+        pubsub.channels.remove(&self.id);
     }
 }
 
@@ -114,19 +114,19 @@ mod tests {
     use super::PubSub;
 
     #[tokio::test]
-    async fn test_dispatcher() -> Result<(), JoinError> {
-        let dispatcher = PubSub::new(1);
+    async fn test_pubsub() -> Result<(), JoinError> {
+        let pubsub = PubSub::new(1);
         let unexpected = "Should not be received".to_owned();
-        dispatcher.publish(&unexpected);
+        pubsub.publish(&unexpected);
 
-        let channel = dispatcher.subscribe();
+        let channel = pubsub.subscribe();
         let handle = tokio::spawn(async move {
             let mut values = channel.pop().await;
             values.pop_front().unwrap()
         });
 
-        let expected = "Hello dispatcher".to_owned();
-        dispatcher.publish(&expected);
+        let expected = "Hello pubsub".to_owned();
+        pubsub.publish(&expected);
         let result = handle.await?;
         assert_eq!(result, expected);
 
