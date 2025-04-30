@@ -25,8 +25,7 @@
 	<div class="grow text-red-400">{message}</div>
 	<button
 		class="btn mr-2 flex h-10 w-10 rounded-full bg-red-400 text-gray-50 shadow-sm shadow-transparent hover:shadow-red-400"
-		disabled={uploading}
-		onclick={() => !uploading && onCancel && onCancel()}
+		onclick={onCancel}
 	>
 		<FontAwesomeIcon icon={faX} />
 	</button>
