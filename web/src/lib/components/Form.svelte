@@ -22,6 +22,14 @@
 		onSubmit: (obj: models.FileObject) => void;
 	}
 
+	interface Upload {
+		id: symbol;
+		file: File;
+		progress: number;
+		finished: boolean;
+		xhr?: XMLHttpRequest;
+	}
+
 	interface State {
 		form: FormState;
 		text: string;
@@ -29,7 +37,7 @@
 			value: string;
 			title?: string;
 		};
-		files: File[];
+		uploads: Upload[];
 		message: string;
 		uploading: boolean;
 	}
@@ -39,7 +47,7 @@
 			form: FormState.None,
 			text: '',
 			url: { value: '' },
-			files: [],
+			uploads: [],
 			message: '',
 			uploading: false
 		}) as State;
@@ -67,18 +75,19 @@
 
 	const changeState = (newState: FormState) => () => (state.form = newState);
 
-	const fileListToArray = (fileList: FileList) => {
-		const files = [];
-		for (const file of fileList) files.push(file);
-		return files;
+	const fileListToUploads = (fileList: FileList) => {
+		const uploads = [];
+		for (const file of fileList)
+			uploads.push({ id: Symbol(), file, progress: 0.0, finished: false } as Upload);
+		return uploads;
 	};
 
-	const updateFiles = (files: FileList | File[], nextState?: FormState) => {
+	const updateFiles = (files: FileList, nextState?: FormState) => {
 		if (files.length <= 0) return;
-		if (files instanceof FileList) files = fileListToArray(files);
-		files = nextState ? [...state.files, ...files] : files;
-		if (nextState) state = { ...state, form: nextState, files };
-		else state.files = files;
+		const uploads = fileListToUploads(files);
+		const nextUploads = nextState ? [...state.uploads, ...uploads] : uploads;
+		if (nextState) state = { ...state, form: nextState, uploads: nextUploads };
+		else state.uploads = nextUploads;
 	};
 
 	const selectFiles = (nextState?: FormState) => () => {
@@ -126,9 +135,9 @@
 	};
 
 	const removeFile = (file: File) => {
-		const files = state.files.filter((other) => other !== file);
-		const form = files.length <= 0 ? FormState.None : state.form;
-		state = { ...state, files, form };
+		const uploads = state.uploads.filter(({ file: other }) => other !== file);
+		const form = uploads.length <= 0 ? FormState.None : state.form;
+		state = { ...state, uploads, form };
 	};
 
 	const submit = async <C extends models.Content>(mime: string, content: C) => {
@@ -157,27 +166,58 @@
 			title: state.url.title
 		});
 
-	const uploadFile = async (file: File) => {
+	const uploadFile = async (upload: Upload) => {
+		const { file } = upload;
 		const data = new FormData();
 		data.append('file', file, file.name);
-		const res = await fetch(`/objects/${sid}`, {
-			method: 'POST',
-			body: data
+
+		const xhr = new XMLHttpRequest();
+		upload.xhr = xhr;
+
+		const promise = new Promise<models.FileObjectDto>((resolve, reject) => {
+			xhr.onload = () => {
+				upload.progress = 1.0;
+				upload.finished = true;
+				resolve(JSON.parse(xhr.responseText) as models.FileObjectDto);
+			};
+			xhr.onerror = () => {
+				reject(xhr);
+			};
 		});
-		if (res.status >= 400) {
+		xhr.upload.onprogress = (evt) => {
+			upload.progress = (evt.loaded / evt.total) * 0.85;
+		};
+		xhr.onabort = () => {
+			upload.progress = 0.0;
+		};
+		xhr.open('POST', `/objects/${sid}`);
+		xhr.send(data);
+
+		try {
+			const dto = await promise;
+			onSubmit(models.objectFromDto(dto));
+		} catch (err) {
 			state = { ...state, uploading: false, message: 'Failed to upload' };
-			throw res;
+			throw err;
 		}
-		const dto: models.FileObjectDto<models.FileContent> = await res.json();
-		onSubmit(models.objectFromDto(dto));
 	};
 
 	const uploadFiles = async () => {
-		const files = state.files;
-		if (files.length <= 0) return;
+		const uploads = state.uploads;
+		if (uploads.length <= 0) return;
 		state.uploading = true;
-		for (const file of files) await uploadFile(file);
+		for (const upload of uploads) {
+			if (!upload.finished) await uploadFile(upload);
+		}
 		resetState();
+	};
+
+	const cancelUpload = () => {
+		for (const upload of state.uploads) {
+			upload.xhr?.abort();
+			if (!upload.finished) upload.progress = 0.0;
+		}
+		state.uploading = false;
 	};
 
 	const globalClipboard = (evt: ClipboardEvent) => {
@@ -227,7 +267,6 @@
 	<FormButtons
 		message={state.message}
 		disabled={!textInputValid(state.text)}
-		uploading={state.uploading}
 		onCancel={resetState}
 		onSubmit={submitText}
 	/>
@@ -238,15 +277,19 @@
 	<FormButtons
 		message={state.message}
 		disabled={!textInputValid(state.url.value)}
-		uploading={state.uploading}
 		onCancel={resetState}
 		onSubmit={submitURL}
 	/>
 </div>
 <div class="flex flex-col" class:hidden={!stateIsFile(state.form)}>
 	<div class="mb-4 flex flex-wrap items-center justify-center">
-		{#each state.files as file (file)}
-			<FilePreview {file} uploading={state.uploading} onRemove={removeFile} />
+		{#each state.uploads as upload (upload.id)}
+			<FilePreview
+				file={upload.file}
+				progress={upload.progress}
+				uploading={state.uploading}
+				onRemove={removeFile}
+			/>
 		{/each}
 		<div class:hidden={state.uploading}>
 			<IconButton icon={faPlus} onClick={selectFiles()} />
@@ -254,8 +297,7 @@
 	</div>
 	<FormButtons
 		disabled={state.uploading}
-		uploading={state.uploading}
-		onCancel={resetState}
+		onCancel={state.uploading ? cancelUpload : resetState}
 		onSubmit={uploadFiles}
 	/>
 </div>
