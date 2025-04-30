@@ -23,8 +23,10 @@
 	}
 
 	interface Upload {
+		id: Symbol;
 		file: File;
 		progress: number;
+		finished: boolean;
 		xhr?: XMLHttpRequest;
 	}
 
@@ -75,7 +77,8 @@
 
 	const fileListToUploads = (fileList: FileList) => {
 		const uploads = [];
-		for (const file of fileList) uploads.push({ file, progress: 0.0 } as Upload);
+		for (const file of fileList)
+			uploads.push({ id: Symbol(), file, progress: 0.0, finished: false } as Upload);
 		return uploads;
 	};
 
@@ -174,6 +177,7 @@
 		const promise = new Promise<models.FileObjectDto>((resolve, reject) => {
 			xhr.onload = () => {
 				upload.progress = 1.0;
+				upload.finished = true;
 				resolve(JSON.parse(xhr.responseText) as models.FileObjectDto);
 			};
 			xhr.onerror = () => {
@@ -202,14 +206,16 @@
 		const uploads = state.uploads;
 		if (uploads.length <= 0) return;
 		state.uploading = true;
-		for (const upload of uploads) await uploadFile(upload);
+		for (const upload of uploads) {
+			if (!upload.finished) await uploadFile(upload);
+		}
 		resetState();
 	};
 
 	const cancelUpload = () => {
 		for (const upload of state.uploads) {
 			upload.xhr?.abort();
-			upload.progress = 0.0;
+			if (!upload.finished) upload.progress = 0.0;
 		}
 		state.uploading = false;
 	};
@@ -279,7 +285,7 @@
 </div>
 <div class="flex flex-col" class:hidden={!stateIsFile(state.form)}>
 	<div class="mb-4 flex flex-wrap items-center justify-center">
-		{#each state.uploads as upload}
+		{#each state.uploads as upload (upload.id)}
 			<FilePreview
 				file={upload.file}
 				progress={upload.progress}
