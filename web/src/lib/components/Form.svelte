@@ -127,7 +127,7 @@
 	};
 
 	const processClipboard = (evt: ClipboardEvent) => {
-		if (state.text.length > 0) return;
+		if (state.text.trim().length > 0) return;
 		const files = evt.clipboardData?.files;
 		if (!files || files.length <= 0) return;
 		evt.preventDefault();
@@ -224,6 +224,7 @@
 		const data = evt.clipboardData;
 		if (!data) return;
 		if (data.files.length > 0) return processClipboard(evt);
+		if (state.form !== FormState.None) return;
 		const text = data.getData('text');
 		try {
 			new URL(text);
