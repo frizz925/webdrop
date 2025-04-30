@@ -23,7 +23,7 @@
 	}
 
 	interface Upload {
-		id: Symbol;
+		id: symbol;
 		file: File;
 		progress: number;
 		finished: boolean;
@@ -267,7 +267,6 @@
 	<FormButtons
 		message={state.message}
 		disabled={!textInputValid(state.text)}
-		uploading={state.uploading}
 		onCancel={resetState}
 		onSubmit={submitText}
 	/>
@@ -278,7 +277,6 @@
 	<FormButtons
 		message={state.message}
 		disabled={!textInputValid(state.url.value)}
-		uploading={state.uploading}
 		onCancel={resetState}
 		onSubmit={submitURL}
 	/>
@@ -299,7 +297,6 @@
 	</div>
 	<FormButtons
 		disabled={state.uploading}
-		uploading={state.uploading}
 		onCancel={state.uploading ? cancelUpload : resetState}
 		onSubmit={uploadFiles}
 	/>

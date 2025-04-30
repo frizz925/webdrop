@@ -6,7 +6,6 @@
 		icon?: IconDefinition;
 		message?: string;
 		disabled?: boolean;
-		uploading?: boolean;
 		onCancel?: () => void;
 		onSubmit?: () => void;
 	}
