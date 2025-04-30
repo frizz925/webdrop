@@ -11,14 +11,7 @@
 		onSubmit?: () => void;
 	}
 
-	let {
-		icon = faPaperPlane,
-		message = '',
-		disabled = false,
-		uploading = false,
-		onCancel,
-		onSubmit
-	}: Props = $props();
+	let { icon = faPaperPlane, message = '', disabled = false, onCancel, onSubmit }: Props = $props();
 </script>
 
 <div class="flex items-center justify-start">
