@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  pull_request:
+    branches: ['develop']
 
 jobs:
   build_web:
@@ -83,7 +85,7 @@ jobs:
         path: target/release/webdrop
 
   release:
-    name: Release
+    name: Release ${{ matrix.arch }}
     needs: 
     - build_web
     - build_server
@@ -111,43 +113,49 @@ jobs:
 
     steps:
     - name: Create web directories
-      run: mkdir -p web/build
+      run: mkdir -p webdrop/web/build
 
     - name: Download web artifact
       uses: actions/download-artifact@v4
       with:
         name: static-web
-        path: web/build
+        path: webdrop/web/build
 
     - name: Download server artifact
       uses: actions/download-artifact@v4
       with:
         name: webdrop-${{ matrix.arch }}
+        path: webdrop
 
     - name: Create archive (Linux)
       if: matrix.platform == 'linux'
       run: |
         export ARCHIVE=webdrop-${{ github.ref_name }}-${{ matrix.arch }}.tar.gz
-        chmod +x webdrop
-        tar -cvzf $ARCHIVE webdrop web
+        chmod +x webdrop/webdrop
+        tar -cvzf $ARCHIVE webdrop
         echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
 
     - name: Create archive (Windows)
       if: matrix.platform == 'windows'
       run: |
         export ARCHIVE=webdrop-${{ github.ref_name }}-${{ matrix.arch }}.zip
-        zip -rv $ARCHIVE webdrop.exe web
+        zip -rv $ARCHIVE webdrop
         echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
 
     - name: Create archive (macOS)
       if: matrix.platform == 'macos'
       run: |
         export ARCHIVE=webdrop-${{ github.ref_name }}-${{ matrix.arch }}.zip
-        chmod +x webdrop
-        zip -rv $ARCHIVE webdrop web
+        chmod +x webdrop/webdrop
+        zip -rv $ARCHIVE webdrop
         echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
     
     - name: Upload release
+      if: github.ref_type == 'tag'
       uses: softprops/action-gh-release@v2
       with:
         files: ${{ env.ARCHIVE }}
+    
+    - name: List all files in the directory
+      if: github.ref_type != 'tag'
+      run: ls -R
