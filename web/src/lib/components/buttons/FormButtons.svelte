@@ -22,7 +22,7 @@
 		<FontAwesomeIcon icon={faX} />
 	</button>
 	<button
-		class="btn btn-send bg-accent flex h-10 w-10 rounded-full text-gray-50 shadow-sm shadow-transparent hover:shadow-sky-400"
+		class="btn bg-accent flex h-10 w-10 rounded-full text-gray-50 shadow-sm shadow-transparent hover:shadow-sky-400"
 		{disabled}
 		onclick={() => !disabled && onSubmit && onSubmit()}
 	>

@@ -69,7 +69,7 @@
 			</div>
 		</div>
 		<div>
-			<div class="h-1 bg-sky-400" style={progressStyle()}></div>
+			<div class="h-1 bg-sky-400 transition-all duration-150" style={progressStyle()}></div>
 		</div>
 	</div>
 </div>
