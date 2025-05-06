@@ -338,7 +338,6 @@
 		onSubmit={uploadFiles}
 	/>
 </div>
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="text-sub flex flex-col items-center justify-center py-8"
 	class:hidden={state.form !== FormState.Drag}

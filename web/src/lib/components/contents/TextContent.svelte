@@ -10,5 +10,5 @@
 </script>
 
 <Content {sid} {object} {onDelete}>
-	<div class="px-4 pt-4 whitespace-pre-wrap overflow-hidden wrap-anywhere">{content.data}</div>
+	<div class="overflow-hidden px-4 pt-4 wrap-anywhere whitespace-pre-wrap">{content.data}</div>
 </Content>
