@@ -9,9 +9,11 @@
 		faLink,
 		faMicrophone,
 		faPencil,
-		faPlus
+		faPlus,
+		faUpload
 	} from '@fortawesome/free-solid-svg-icons';
 
+	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { onMount } from 'svelte';
 	import FormButtons from './buttons/FormButtons.svelte';
 	import IconButton from './buttons/IconButton.svelte';
@@ -54,11 +56,13 @@
 
 	let { sid, onSubmit }: Props = $props();
 	let state: State = $state(initialState());
+
 	let urlInput: HTMLInputElement;
 	let fileInput: HTMLInputElement;
 
 	const acceptMap = {
 		[FormState.None]: '',
+		[FormState.Drag]: '',
 		[FormState.Text]: 'text/*',
 		[FormState.Link]: 'text/x-uri',
 		[FormState.Image]: 'image/*',
@@ -235,9 +239,41 @@
 		}
 	};
 
+	let prevState: FormState;
+	const globalEnter = (evt: DragEvent) => {
+		evt.preventDefault();
+		if (state.form === FormState.Drag) return;
+		prevState = state.form;
+		state.form = FormState.Drag;
+	};
+
+	const globalDrop = (evt: DragEvent) => {
+		evt.preventDefault();
+		if (state.form !== FormState.Drag) return;
+		const data = evt.dataTransfer;
+		if (!data) return;
+		updateFiles(data.files, FormState.File);
+	};
+
+	const globalLeave = (evt: DragEvent) => {
+		evt.preventDefault();
+		if (state.form === FormState.Drag) state.form = prevState;
+	};
+
 	onMount(() => {
+		document.addEventListener('dragenter', globalEnter);
+		document.addEventListener('dragover', globalEnter);
+		document.addEventListener('dragleave', globalLeave);
+		document.addEventListener('drop', globalDrop);
 		document.addEventListener('paste', globalClipboard);
-		return () => document.removeEventListener('paste', globalClipboard);
+
+		return () => {
+			document.removeEventListener('dragenter', globalEnter);
+			document.removeEventListener('dragover', globalEnter);
+			document.removeEventListener('dragleave', globalLeave);
+			document.removeEventListener('drop', globalDrop);
+			document.removeEventListener('paste', globalClipboard);
+		};
 	});
 </script>
 
@@ -301,6 +337,15 @@
 		onCancel={state.uploading ? cancelUpload : resetState}
 		onSubmit={uploadFiles}
 	/>
+</div>
+<div
+	class="text-sub flex flex-col items-center justify-center py-8"
+	class:hidden={state.form !== FormState.Drag}
+>
+	<div class="flex items-center justify-start font-bold">
+		<FontAwesomeIcon icon={faUpload} />
+		<div class="ml-2">Drag and drop files anywhere to upload</div>
+	</div>
 </div>
 
 <style>
