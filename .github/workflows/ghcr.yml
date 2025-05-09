@@ -1,0 +1,35 @@
+name: Upload container image to GHCR
+
+on:
+  push:
+    tags: [ 'v*.*.*' ]
+    branches: [ 'main', 'develop' ]
+
+env:
+  IMAGE_VERSION: latest
+  IMAGE_TAG: webdrop:latest
+    
+jobs:
+  build_and_push:
+    name: Build and push container image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image tag as stable
+        if: github.ref_name == 'main'
+        run: echo "IMAGE_VERSION=stable" >> $GITHUB_ENV
+
+      - name: Set image tag as version
+        if: github.ref_type == 'tag'
+        run: echo "IMAGE_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+
+      - name: Set image tag
+        run: echo "IMAGE_TAG=ghcr.io/${{ github.repository }}:${{ env.IMAGE_VERSION }}" >> $GITHUB_ENV
+      
+      - name: Build and push image
+        run: |
+          docker build -t ${{ env.IMAGE_TAG }} .
+          docker push ${{ env.IMAGE_TAG }}
