@@ -2,8 +2,10 @@ name: Upload new release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    tags: [ 'v*.*.*' ]
+
+env:
+  ARCHIVE: webdrop-latest-unknown.tar.gz
 
 jobs:
   build_web:

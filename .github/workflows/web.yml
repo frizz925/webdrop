@@ -1,10 +1,10 @@
-name: Node
+name: Build web
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ 'main' ]
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [ 'main', 'develop' ]
 
 jobs:
   check:
