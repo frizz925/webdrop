@@ -73,7 +73,11 @@
 	};
 
 	let ws: WebSocket | undefined;
+	let exited = false;
 	const exitSession = () => {
+		if (exited) return;
+		exited = true;
+
 		if (ws) ws.close();
 		window.location.assign('/');
 	};
@@ -119,6 +123,10 @@
 		};
 		ws.onclose = () => {
 			console.log('WebSocket disconnected');
+			if (exited) return;
+
+			console.log('Reconnecting WebSocket in 5 seconds...');
+			setTimeout(connectWS, 5000);
 		};
 	};
 
