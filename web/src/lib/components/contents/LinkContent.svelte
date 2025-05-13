@@ -21,15 +21,13 @@
 		<div class="text-sm">
 			<FontAwesomeIcon icon={download ? faDownload : faLink} />
 		</div>
-		{#if download}
-			<a href={url} target="_blank" class="link text-accent ml-2" download>
-				{title}
-			</a>
-		{:else}
-			<a href={url} target="_blank" class="link text-accent ml-2">
-				{title}
-			</a>
-		{/if}
+		<div class="link text-accent ml-2">
+			{#if download}
+				<a href={url} target="_blank" download>{title}</a>
+			{:else}
+				<a href={url} target="_blank">{title}</a>
+			{/if}
+		</div>
 	</div>
 </Content>
 
