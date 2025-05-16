@@ -339,7 +339,7 @@
 	/>
 </div>
 <div
-	class="text-sub flex flex-col items-center justify-center py-8"
+	class="text-accent flex flex-col items-center justify-center py-8"
 	class:hidden={state.form !== FormState.Drag}
 >
 	<div class="flex items-center justify-start font-bold">
