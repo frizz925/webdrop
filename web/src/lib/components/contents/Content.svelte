@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { FileObject, ObjectID, SessionID } from '$lib/models';
-	import { faTrash } from '@fortawesome/free-solid-svg-icons';
+	import type { FileObject, ObjectID, SessionID, TextContent } from '$lib/models';
+	import { faClipboard, faTrash } from '@fortawesome/free-solid-svg-icons';
 	import { format, formatDistanceToNowStrict } from 'date-fns';
 	import { onMount, type Snippet } from 'svelte';
 	import IconButton from '../buttons/IconButton.svelte';
@@ -17,8 +17,9 @@
 	}
 
 	const { sid, object, children, onDelete }: Props = $props();
-	const { id, timestamp } = object;
+	const { id, timestamp, mime, content } = object;
 	const datetime = format(timestamp, 'yyyy-MM-dd HH:mm:ss');
+	const isTextContent = mime.startsWith('text/plain');
 
 	let showTimestamp = $state(false);
 	const toggleTimestamp = () => {
@@ -28,6 +29,12 @@
 	let elapsed = $state('Just now');
 	const updateElapsed = () => {
 		elapsed = formatDistanceToNowStrict(timestamp) + ' ago';
+	};
+
+	const copyText = () => {
+		if (!isTextContent) return;
+		const textContent = content as TextContent;
+		navigator.clipboard.writeText(textContent.data);
 	};
 
 	const deleteObject = async () => {
@@ -59,6 +66,9 @@
 					{datetime}
 				</span>
 			</div>
+		</div>
+		<div class="block cursor-pointer" class:hidden={!isTextContent}>
+			<IconButton icon={faClipboard} size="xs" onClick={copyText} />
 		</div>
 		<div class="block cursor-pointer text-red-400">
 			<IconButton icon={faTrash} hoverBgColor="red" size="xs" onClick={deleteObject} />
