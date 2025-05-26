@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { FileObject, ObjectID, SessionID, TextContent } from '$lib/models';
+	import type { FileObject, LinkContent, ObjectID, SessionID, TextContent } from '$lib/models';
 	import { faClipboard, faTrash } from '@fortawesome/free-solid-svg-icons';
 	import { format, formatDistanceToNowStrict } from 'date-fns';
 	import { onMount, type Snippet } from 'svelte';
@@ -19,7 +19,7 @@
 	const { sid, object, children, onDelete }: Props = $props();
 	const { id, timestamp, mime, content } = object;
 	const datetime = format(timestamp, 'yyyy-MM-dd HH:mm:ss');
-	const isTextContent = mime.startsWith('text/plain');
+	const isTextContent = mime.startsWith('text/plain') || mime.startsWith('text/x-url');
 
 	let showTimestamp = $state(false);
 	const toggleTimestamp = () => {
@@ -32,9 +32,11 @@
 	};
 
 	const copyText = () => {
-		if (!isTextContent) return;
-		const textContent = content as TextContent;
-		navigator.clipboard.writeText(textContent.data);
+		let text;
+		if (mime.startsWith('text/plain')) text = (content as TextContent).data;
+		else if (mime.startsWith('text/x-url')) text = (content as LinkContent).url;
+		else return;
+		navigator.clipboard.writeText(text);
 	};
 
 	const deleteObject = async () => {
