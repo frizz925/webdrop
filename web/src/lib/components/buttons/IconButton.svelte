@@ -7,7 +7,7 @@
 		icon: IconDefinition;
 		size?: string;
 		hoverBgColor?: string;
-		onClick?: () => void;
+		onClick?: (evt: MouseEvent) => void;
 		class?: ClassValue;
 	}
 

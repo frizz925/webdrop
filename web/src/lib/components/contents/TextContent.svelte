@@ -6,9 +6,9 @@
 		content: TextContent;
 	}
 
-	const { sid, object, content, onDelete }: Props = $props();
+	const { object, getFileUrl, content, onDelete }: Props = $props();
 </script>
 
-<Content {sid} {object} {onDelete}>
+<Content {object} {getFileUrl} {onDelete}>
 	<div class="overflow-hidden px-4 pt-4 wrap-anywhere whitespace-pre-wrap">{content.data}</div>
 </Content>
