@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { SID_KEY } from '$lib';
 	import type { Session } from '$lib/models';
 	import { sluggify } from '$lib/utils';
 
@@ -40,7 +39,6 @@
 		}
 
 		const sess: Session = await res.json();
-		localStorage.setItem(SID_KEY, sess.id.toString());
 		window.location.assign(`/session/${sess.id}`);
 	};
 </script>
