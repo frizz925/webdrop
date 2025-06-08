@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
-	import { type Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 
 	export interface Menu {
 		label: string;
@@ -38,6 +38,12 @@
 		el.style = `top: ${top}px; left: ${left}px`;
 		document.body.style.overflow = 'hidden';
 	});
+
+	onMount(() => {
+		const listener = () => (shown = false);
+		window.addEventListener('resize', listener);
+		return () => window.removeEventListener('resize', listener);
+	});
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -49,8 +55,8 @@
 		class:hidden={!shown}
 		onclick={() => (shown = false)}
 	>
-		<div bind:this={el} class="dropdown border-1 bg-white drop-shadow-lg dark:bg-slate-800">
-			{#each menuList as menu (menu.label)}
+		<div bind:this={el} class="dropdown bg-gray-100 drop-shadow-lg dark:bg-slate-700">
+			{#each menuList as menu, index (index)}
 				<div
 					class={[
 						'flex cursor-pointer items-center justify-start bg-transparent px-4 py-2 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-500',

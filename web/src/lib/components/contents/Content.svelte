@@ -5,6 +5,7 @@
 	import { onMount, type Snippet } from 'svelte';
 	import IconButton from '../buttons/IconButton.svelte';
 	import DropdownMenu, { type Menu } from '../DropdownMenu.svelte';
+	import { toastState } from '../state.svelte';
 
 	export interface PartialProps {
 		object: FileObject;
@@ -37,18 +38,20 @@
 		elapsed = formatDistanceToNowStrict(timestamp) + ' ago';
 	};
 
-	const copyText = () => {
-		let text;
-		if (mime.startsWith('text/plain')) text = (content as TextContent).data;
-		else if (mime.startsWith('text/x-url')) text = (content as LinkContent).url;
-		else return;
+	const copyToClipboard = (text: string, what: string) => {
 		navigator.clipboard.writeText(text);
+		toastState.message = `${what} copied`;
+	};
+
+	const copyText = () => {
+		if (mime.startsWith('text/plain')) copyToClipboard((content as TextContent).data, 'Text');
+		else if (mime.startsWith('text/x-url')) copyToClipboard((content as LinkContent).url, 'URL');
 	};
 
 	const copyLink = () => {
 		const url = new URL(window.location.toString());
 		url.pathname = getFileUrl(obj, content);
-		navigator.clipboard.writeText(url.toString());
+		copyToClipboard(url.toString(), 'Object URL');
 	};
 
 	const menuList: Menu[] = [
@@ -59,19 +62,19 @@
 			hidden: !isTextContent || !mime.startsWith('text/plain')
 		},
 		{
-			label: 'Copy Link',
+			label: 'Copy URL',
 			icon: faLink,
 			onClick: copyText,
 			hidden: !isTextContent || !mime.startsWith('text/x-url')
 		},
 		{
-			label: 'Copy Link',
+			label: 'Copy Object URL',
 			icon: faLink,
 			onClick: copyLink,
 			hidden: isTextContent
 		},
 		{
-			label: 'Delete',
+			label: 'Delete Object',
 			icon: faTrash,
 			onClick: () => onDelete && onDelete(id),
 			color: 'red'
