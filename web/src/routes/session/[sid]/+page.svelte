@@ -172,6 +172,11 @@
 			onClick: showQrcode
 		},
 		{
+			label: 'Share Session',
+			icon: faShare,
+			onClick: shareLink
+		},
+		{
 			label: 'Copy Session URL',
 			icon: faLink,
 			onClick: copyLink
