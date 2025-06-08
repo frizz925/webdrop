@@ -53,7 +53,7 @@
 			bind:this={el}
 			class="dropdown bg-white drop-shadow drop-shadow-neutral-300 dark:bg-slate-700 dark:drop-shadow-neutral-700"
 		>
-			{#each menuList as menu}
+			{#each menuList as menu (menu.label)}
 				<div
 					class={[
 						'flex cursor-pointer items-center justify-start bg-transparent px-4 py-2 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-500',
