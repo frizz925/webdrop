@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { SID_KEY } from '$lib';
 	import type * as models from '$lib/models';
 	import type { NotificationEvent, NotificationHandlers } from '$lib/notification';
 	import { sluggify } from '$lib/utils';
 	import {
 		faClipboard,
+		faEllipsisV,
 		faEye,
 		faEyeSlash,
+		faLink,
 		faQrcode,
 		faShare,
-		faTrash
+		faTrash,
+		faX
 	} from '@fortawesome/free-solid-svg-icons';
 	import { onMount } from 'svelte';
 
@@ -24,7 +26,10 @@
 	import TextContent from '$lib/components/contents/TextContent.svelte';
 	import VideoContent from '$lib/components/contents/VideoContent.svelte';
 
+	import DropdownMenu, { type Menu } from '$lib/components/dropdown/DropdownMenu.svelte';
 	import ConfirmationModal from '$lib/components/modals/ConfirmationModal.svelte';
+
+	import * as utils from '$lib/utils';
 	import type { PageData } from './$types';
 
 	const { sid } = page.params;
@@ -34,7 +39,11 @@
 
 	let sidShown = $state(false);
 	let qrcodeShown = $state(false);
-	let confirmShown = $state(false);
+	let dropdownShown = $state(false);
+
+	let confirmSessionDelete = $state(false);
+	let confirmObjectDelete = $state(false);
+
 	let session = $state(data.session);
 
 	const objectIDs = new Set(session.objects.map((o) => o.id));
@@ -54,6 +63,10 @@
 			title: 'WebDrop - Easily share files over the web',
 			url: getLink()
 		});
+	};
+
+	const getFileUrl = (obj: models.FileObject, content: models.Content) => {
+		return utils.getFileUrl(sid, obj, content as models.FileContent);
 	};
 
 	const showQrcode = () => {
@@ -84,7 +97,6 @@
 
 	const deleteSession = async () => {
 		await fetch(`/api/session/${sid}`, { method: 'DELETE' });
-		localStorage.removeItem(SID_KEY);
 		exitSession();
 	};
 
@@ -130,6 +142,47 @@
 		};
 	};
 
+	let selectedObjectID: models.ObjectID;
+	const askObjectDelete = (oid: models.ObjectID) => {
+		selectedObjectID = oid;
+		confirmObjectDelete = true;
+	};
+	const doObjectDelete = async () => {
+		const oid = selectedObjectID;
+		await fetch(`/api/session/${sid}/${oid}`, { method: 'DELETE' });
+		deleteObject(oid);
+		confirmObjectDelete = false;
+	};
+
+	const sessionMenuList: Menu[] = [
+		{
+			label: 'Show QR Code',
+			icon: faQrcode,
+			onClick: showQrcode
+		},
+		{
+			label: 'Copy Session Link',
+			icon: faLink,
+			onClick: () => navigator.clipboard.writeText(getLink())
+		},
+		{
+			label: 'Copy Session ID',
+			icon: faClipboard,
+			onClick: copySlug
+		},
+		{
+			label: 'Exit Session',
+			icon: faX,
+			onClick: exitSession
+		},
+		{
+			label: 'Terminate Session',
+			icon: faTrash,
+			onClick: () => (confirmSessionDelete = true),
+			color: 'red'
+		}
+	];
+
 	onMount(connectWS);
 </script>
 
@@ -150,25 +203,34 @@
 				<span class:hidden={sidShown} class="italic opacity-50">xxxx-xxxx-xxxx-xxxx</span>
 			</div>
 		</div>
-		<div class="text-sub flex items-center justify-start">
-			<div class:hidden={sidShown}>
+		<div class="flex items-center justify-start">
+			<div class="text-sub" class:hidden={sidShown}>
 				<IconButton icon={faEye} size="xs" onClick={() => (sidShown = true)} />
 			</div>
-			<div class:hidden={!sidShown}>
+			<div class="text-sub" class:hidden={!sidShown}>
 				<IconButton icon={faEyeSlash} size="xs" onClick={() => (sidShown = false)} />
 			</div>
-			<IconButton icon={faClipboard} size="xs" onClick={copySlug} />
+			<div class="text-sub hidden items-center justify-start sm:flex">
+				<IconButton icon={faQrcode} size="xs" onClick={showQrcode} />
+				<IconButton icon={faShare} size="xs" onClick={shareLink} />
+			</div>
+			<div class="text-sub flex items-center justify-start">
+				<IconButton icon={faClipboard} size="xs" onClick={copySlug} />
+				<DropdownMenu bind:shown={dropdownShown} menuList={sessionMenuList}>
+					<IconButton
+						icon={faEllipsisV}
+						size="xs"
+						onClick={() => (dropdownShown = !dropdownShown)}
+					/>
+				</DropdownMenu>
+			</div>
 		</div>
-		<div class="text-sub hidden items-center justify-start sm:flex">
-			<IconButton icon={faQrcode} size="xs" onClick={showQrcode} />
-			<IconButton icon={faShare} size="xs" onClick={shareLink} />
-		</div>
-		<div class="text-red-400">
+		<div class="hidden">
 			<IconButton
 				icon={faTrash}
 				size="xs"
 				hoverBgColor="red"
-				onClick={() => (confirmShown = true)}
+				onClick={() => (confirmSessionDelete = true)}
 			/>
 		</div>
 	</div>
@@ -179,17 +241,17 @@
 		{#each session.objects as obj (obj.id)}
 			{#if obj.content.kind === 'text'}
 				<TextContent
-					{sid}
 					object={obj}
 					content={obj.content as models.TextContent}
-					onDelete={deleteObject}
+					{getFileUrl}
+					onDelete={askObjectDelete}
 				/>
 			{:else if obj.content.kind === 'link'}
 				<LinkContent
-					{sid}
 					object={obj}
 					content={obj.content as models.LinkContent}
-					onDelete={deleteObject}
+					{getFileUrl}
+					onDelete={askObjectDelete}
 				/>
 			{:else if obj.content.kind === 'file'}
 				{#if obj.mime.startsWith('image/')}
@@ -200,10 +262,10 @@
 					<AudioContent {sid} object={obj} content={obj.content as models.FileContent} />
 				{/if}
 				<LinkContent
-					{sid}
 					object={obj}
 					content={obj.content as models.FileContent}
-					onDelete={deleteObject}
+					{getFileUrl}
+					onDelete={askObjectDelete}
 					download
 				/>
 			{/if}
@@ -211,4 +273,41 @@
 	</div>
 </div>
 <QRCodeModal bind:shown={qrcodeShown} text={page.url.toString()} />
-<ConfirmationModal bind:shown={confirmShown} onConfirm={deleteSession} />
+<ConfirmationModal bind:shown={confirmSessionDelete}>
+	<div class="text-xl font-bold">Session termination</div>
+	<div class="mt-4">
+		<div>Do you want to terminate the session?</div>
+		<div class="font-semibold text-red-400 italic">Your uploaded files will be deleted!</div>
+	</div>
+	<div class="mt-8 text-right">
+		<button
+			class="cursor-pointer rounded-md p-2 transition-colors hover:bg-gray-500/20"
+			onclick={() => (confirmSessionDelete = false)}>Cancel</button
+		>
+		<button
+			class="cursor-pointer rounded-md bg-red-400 p-2 text-gray-50 shadow shadow-transparent transition-shadow duration-150 hover:shadow-red-400"
+			onclick={deleteSession}
+		>
+			Terminate
+		</button>
+	</div>
+</ConfirmationModal>
+<ConfirmationModal bind:shown={confirmObjectDelete}>
+	<div class="text-xl font-bold">Delete object</div>
+	<div class="mt-4">
+		<div>Are you sure you want to delete this object?</div>
+		<div class="font-semibold text-red-400 italic">Deleted objects can't be recovered!</div>
+	</div>
+	<div class="mt-8 text-right">
+		<button
+			class="cursor-pointer rounded-md p-2 transition-colors hover:bg-gray-500/20"
+			onclick={() => (confirmObjectDelete = false)}>Cancel</button
+		>
+		<button
+			class="cursor-pointer rounded-md bg-red-400 p-2 text-gray-50 shadow shadow-transparent transition-shadow duration-150 hover:shadow-red-400"
+			onclick={doObjectDelete}
+		>
+			Delete
+		</button>
+	</div>
+</ConfirmationModal>

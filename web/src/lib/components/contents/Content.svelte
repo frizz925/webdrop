@@ -1,13 +1,14 @@
 <script lang="ts">
-	import type { FileObject, LinkContent, ObjectID, SessionID, TextContent } from '$lib/models';
-	import { faClipboard, faTrash } from '@fortawesome/free-solid-svg-icons';
+	import type { Content, FileObject, LinkContent, ObjectID, TextContent } from '$lib/models';
+	import { faClipboard, faEllipsisV, faLink, faTrash } from '@fortawesome/free-solid-svg-icons';
 	import { format, formatDistanceToNowStrict } from 'date-fns';
 	import { onMount, type Snippet } from 'svelte';
 	import IconButton from '../buttons/IconButton.svelte';
+	import DropdownMenu, { type Menu } from '../dropdown/DropdownMenu.svelte';
 
 	export interface PartialProps {
-		sid: SessionID;
 		object: FileObject;
+		getFileUrl: (obj: FileObject, content: Content) => string;
 		children?: Snippet;
 		onDelete?: (oid: ObjectID) => void;
 	}
@@ -16,14 +17,19 @@
 		children?: Snippet;
 	}
 
-	const { sid, object, children, onDelete }: Props = $props();
-	const { id, timestamp, mime, content } = object;
+	const { object: obj, getFileUrl, children, onDelete }: Props = $props();
+	const { id, timestamp, mime, content } = obj;
 	const datetime = format(timestamp, 'yyyy-MM-dd HH:mm:ss');
 	const isTextContent = mime.startsWith('text/plain') || mime.startsWith('text/x-url');
 
-	let showTimestamp = $state(false);
+	let timestampShown = $state(false);
 	const toggleTimestamp = () => {
-		showTimestamp = !showTimestamp;
+		timestampShown = !timestampShown;
+	};
+
+	let dropdownShown = $state(false);
+	const toggleDropdown = () => {
+		dropdownShown = !dropdownShown;
 	};
 
 	let elapsed = $state('Just now');
@@ -39,10 +45,38 @@
 		navigator.clipboard.writeText(text);
 	};
 
-	const deleteObject = async () => {
-		await fetch(`/api/session/${sid}/${id}`, { method: 'DELETE' });
-		if (onDelete) onDelete(id);
+	const copyLink = () => {
+		const url = new URL(window.location.toString());
+		url.pathname = getFileUrl(obj, content);
+		navigator.clipboard.writeText(url.toString());
 	};
+
+	const menuList: Menu[] = [
+		{
+			label: 'Copy Text',
+			icon: faClipboard,
+			onClick: copyText,
+			hidden: !isTextContent || !mime.startsWith('text/plain')
+		},
+		{
+			label: 'Copy Link',
+			icon: faLink,
+			onClick: copyText,
+			hidden: !isTextContent || !mime.startsWith('text/x-url')
+		},
+		{
+			label: 'Copy Link',
+			icon: faLink,
+			onClick: copyLink,
+			hidden: isTextContent
+		},
+		{
+			label: 'Delete',
+			icon: faTrash,
+			onClick: () => onDelete && onDelete(id),
+			color: 'red'
+		}
+	];
 
 	onMount(() => {
 		updateElapsed();
@@ -61,19 +95,16 @@
 				onclick={toggleTimestamp}
 				onkeypress={toggleTimestamp}
 			>
-				<span class={!showTimestamp ? 'inline' : 'hidden'}>
+				<span class={!timestampShown ? 'inline' : 'hidden'}>
 					{elapsed}
 				</span>
-				<span class={showTimestamp ? 'inline' : 'hidden'}>
+				<span class={timestampShown ? 'inline' : 'hidden'}>
 					{datetime}
 				</span>
 			</div>
 		</div>
-		<div class="block cursor-pointer" class:hidden={!isTextContent}>
-			<IconButton icon={faClipboard} size="xs" onClick={copyText} />
-		</div>
-		<div class="block cursor-pointer text-red-400">
-			<IconButton icon={faTrash} hoverBgColor="red" size="xs" onClick={deleteObject} />
-		</div>
+		<DropdownMenu bind:shown={dropdownShown} {menuList}>
+			<IconButton icon={faEllipsisV} size="xs" onClick={toggleDropdown} />
+		</DropdownMenu>
 	</div>
 </div>

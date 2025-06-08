@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { FileContent, LinkContent } from '$lib/models';
-	import { getFileUrl } from '$lib/utils';
 	import { faDownload, faLink } from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import Content, { type PartialProps } from './Content.svelte';
@@ -10,13 +9,13 @@
 		download?: boolean;
 	}
 
-	const { sid, object: obj, content, download, onDelete }: Props = $props();
+	const { object: obj, getFileUrl, content, download, onDelete }: Props = $props();
 
-	const url = (content as LinkContent).url || getFileUrl(sid, obj, content as FileContent);
+	const url = (content as LinkContent).url || getFileUrl(obj, content);
 	const title = (content as LinkContent).title || (content as FileContent).name || url;
 </script>
 
-<Content {sid} object={obj} {onDelete}>
+<Content object={obj} {getFileUrl} {onDelete}>
 	<div class="flex items-center justify-start overflow-hidden px-4 pt-4">
 		<div class="text-sm">
 			<FontAwesomeIcon icon={download ? faDownload : faLink} />

@@ -2,7 +2,8 @@
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 
-body {
+body,
+.text-primary {
 	color: var(--color-gray-800);
 
 	@media (prefers-color-scheme: dark) {
