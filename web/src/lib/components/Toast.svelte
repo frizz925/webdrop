@@ -11,13 +11,8 @@
 		el.style.bottom = `-${rect.height}px`;
 
 		if (mounting) return;
-
-		if (pendingTimer) {
-			clearTimeout(pendingTimer);
-			pendingTimer = null;
-		}
-
-		setTimeout(() => {
+		if (pendingTimer) clearTimeout(pendingTimer);
+		pendingTimer = setTimeout(() => {
 			lastMessage = '';
 			toastState.message = '';
 		}, 300);
@@ -25,7 +20,6 @@
 
 	$effect(() => {
 		if (lastMessage === toastState.message) return;
-
 		el.style.bottom = '0px';
 		lastMessage = toastState.message;
 
