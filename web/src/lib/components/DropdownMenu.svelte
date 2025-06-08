@@ -49,10 +49,7 @@
 		class:hidden={!shown}
 		onclick={() => (shown = false)}
 	>
-		<div
-			bind:this={el}
-			class="dropdown bg-white drop-shadow drop-shadow-neutral-300 dark:bg-slate-700 dark:drop-shadow-neutral-700"
-		>
+		<div bind:this={el} class="dropdown border-1 bg-white drop-shadow-lg dark:bg-slate-800">
 			{#each menuList as menu (menu.label)}
 				<div
 					class={[
