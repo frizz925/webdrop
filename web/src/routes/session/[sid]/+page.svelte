@@ -11,8 +11,8 @@
 		faLink,
 		faQrcode,
 		faShare,
-		faTrash,
-		faX
+		faSignOut,
+		faTrash
 	} from '@fortawesome/free-solid-svg-icons';
 	import { onMount } from 'svelte';
 
@@ -26,9 +26,11 @@
 	import TextContent from '$lib/components/contents/TextContent.svelte';
 	import VideoContent from '$lib/components/contents/VideoContent.svelte';
 
-	import DropdownMenu, { type Menu } from '$lib/components/dropdown/DropdownMenu.svelte';
+	import DropdownMenu, { type Menu } from '$lib/components/DropdownMenu.svelte';
 	import ConfirmationModal from '$lib/components/modals/ConfirmationModal.svelte';
 
+	import Toast from '$lib/components/Toast.svelte';
+	import { toastState } from '$lib/components/state.svelte';
 	import * as utils from '$lib/utils';
 	import type { PageData } from './$types';
 
@@ -54,9 +56,12 @@
 		window.scrollTo(0, 0);
 	};
 
-	const copySlug = () => {
-		navigator.clipboard.writeText(slug);
+	const copyToClipboard = (text: string, what: string) => {
+		navigator.clipboard.writeText(text);
+		toastState.message = `${what} copied`;
 	};
+	const copyLink = () => copyToClipboard(getLink(), 'Session URL');
+	const copySlug = () => copyToClipboard(slug, 'Session ID');
 
 	const shareLink = () => {
 		navigator.share({
@@ -83,6 +88,11 @@
 		if (!objectIDs.has(oid)) return;
 		objectIDs.delete(oid);
 		session.objects = session.objects.filter((other) => other.id != oid);
+	};
+
+	const onUpload = (obj: models.FileObject) => {
+		addObject(obj);
+		toastState.message = 'Object uploaded';
 	};
 
 	let ws: WebSocket | undefined;
@@ -152,6 +162,7 @@
 		await fetch(`/api/session/${sid}/${oid}`, { method: 'DELETE' });
 		deleteObject(oid);
 		confirmObjectDelete = false;
+		toastState.message = 'Object deleted';
 	};
 
 	const sessionMenuList: Menu[] = [
@@ -161,9 +172,14 @@
 			onClick: showQrcode
 		},
 		{
-			label: 'Copy Session Link',
+			label: 'Share Session',
+			icon: faShare,
+			onClick: shareLink
+		},
+		{
+			label: 'Copy Session URL',
 			icon: faLink,
-			onClick: () => navigator.clipboard.writeText(getLink())
+			onClick: copyLink
 		},
 		{
 			label: 'Copy Session ID',
@@ -172,7 +188,7 @@
 		},
 		{
 			label: 'Exit Session',
-			icon: faX,
+			icon: faSignOut,
 			onClick: exitSession
 		},
 		{
@@ -187,11 +203,11 @@
 </script>
 
 <div
-	class="fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-center border-b bg-white px-4 dark:bg-gray-800"
+	class="fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-center border-b bg-white px-4 dark:bg-slate-800"
 >
 	<button class="cursor-pointer text-xl font-bold" onclick={returnToTop}>WebDrop</button>
 </div>
-<div class="mt-12 bg-white dark:bg-gray-800">
+<div class="mt-12 bg-white dark:bg-slate-800">
 	<div class="flex items-center justify-start border-b py-1 pr-2 pl-4">
 		<div class="flex grow items-center justify-start">
 			<div class="mr-2">
@@ -235,7 +251,7 @@
 		</div>
 	</div>
 	<div class="border-b p-4">
-		<Form {sid} onSubmit={addObject} />
+		<Form {sid} onSubmit={onUpload} />
 	</div>
 	<div>
 		{#each session.objects as obj (obj.id)}
@@ -311,3 +327,4 @@
 		</button>
 	</div>
 </ConfirmationModal>
+<Toast />

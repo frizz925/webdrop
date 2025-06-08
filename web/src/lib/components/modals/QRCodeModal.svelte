@@ -17,7 +17,7 @@
 <Modal bind:shown>
 	<canvas bind:this={canvas}></canvas>
 	<button
-		class="mt-2 cursor-pointer p-4 text-lg text-gray-200 transition-colors hover:bg-black/20 dark:hover:bg-white/20"
+		class="cursor-pointer p-4 text-lg text-gray-200 transition-colors hover:bg-black/20 dark:hover:bg-white/20"
 		onclick={() => (shown = false)}
 	>
 		Close
