@@ -65,8 +65,10 @@
 					class:hidden={menu.hidden}
 					onclick={menu.onClick}
 				>
-					<div class="grow">{menu.label}</div>
-					<FontAwesomeIcon icon={menu.icon} />
+					<div class="grow pr-6">{menu.label}</div>
+					<div class="w-4 text-center">
+						<FontAwesomeIcon icon={menu.icon} />
+					</div>
 				</div>
 			{/each}
 		</div>
@@ -84,7 +86,6 @@
 
 	.dropdown {
 		position: fixed;
-		width: 210px;
 	}
 
 	.menu-color-red {
