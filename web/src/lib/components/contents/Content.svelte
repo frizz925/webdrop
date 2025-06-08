@@ -4,7 +4,7 @@
 	import { format, formatDistanceToNowStrict } from 'date-fns';
 	import { onMount, type Snippet } from 'svelte';
 	import IconButton from '../buttons/IconButton.svelte';
-	import DropdownMenu, { type Menu } from '../dropdown/DropdownMenu.svelte';
+	import DropdownMenu, { type Menu } from '../DropdownMenu.svelte';
 
 	export interface PartialProps {
 		object: FileObject;

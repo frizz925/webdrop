@@ -26,7 +26,7 @@
 	import TextContent from '$lib/components/contents/TextContent.svelte';
 	import VideoContent from '$lib/components/contents/VideoContent.svelte';
 
-	import DropdownMenu, { type Menu } from '$lib/components/dropdown/DropdownMenu.svelte';
+	import DropdownMenu, { type Menu } from '$lib/components/DropdownMenu.svelte';
 	import ConfirmationModal from '$lib/components/modals/ConfirmationModal.svelte';
 
 	import * as utils from '$lib/utils';
