@@ -12,7 +12,8 @@
 		faQrcode,
 		faShare,
 		faSignOut,
-		faTrash
+		faTrash,
+		faX
 	} from '@fortawesome/free-solid-svg-icons';
 	import { onMount } from 'svelte';
 
@@ -193,7 +194,7 @@
 		},
 		{
 			label: 'Terminate Session',
-			icon: faTrash,
+			icon: faX,
 			onClick: () => (confirmSessionDelete = true),
 			color: 'red'
 		}
