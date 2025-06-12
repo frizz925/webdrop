@@ -47,20 +47,23 @@
 	<div class="bg-color flex flex-col items-center">
 		<h1 class="text-4xl font-bold">WebDrop</h1>
 		<h2 class="mt-2 text-xl">Easily share files over the web</h2>
-		<div class="mt-4 flex">
+		<form class="mt-4 flex" onsubmit={joinSession}>
 			<input
 				type="text"
 				class="h-12 w-56 rounded-l-full border-r-0 pl-6"
 				placeholder="Session ID"
 				oninput={updateInput}
 			/>
-			<button class="h-12 rounded-r-full px-4" disabled={sid.length <= 0} onclick={joinSession}>
-				Join
-			</button>
-		</div>
+			<input
+				type="submit"
+				class="btn h-12 rounded-r-full px-4"
+				disabled={sid.length <= 0}
+				value="Join"
+			/>
+		</form>
 		<div class="mt-4">
 			<button
-				class="cursor-pointer rounded-full px-4 py-2"
+				class="btn cursor-pointer rounded-full px-4 py-2"
 				disabled={creating}
 				onclick={createSession}
 			>
@@ -72,7 +75,7 @@
 </div>
 
 <style>
-	button {
+	.btn {
 		font-weight: var(--font-weight-semibold);
 		background-color: var(--color-gray-800);
 		color: var(--color-gray-50);
@@ -83,11 +86,11 @@
 		}
 	}
 
-	button:not(:disabled) {
+	.btn:not(:disabled) {
 		cursor: pointer;
 	}
 
-	button:disabled {
+	.btn:disabled {
 		background-color: var(--color-gray-300);
 
 		@media (prefers-color-scheme: dark) {
