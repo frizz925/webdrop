@@ -260,31 +260,37 @@
 				<TextContent
 					object={obj}
 					content={obj.content as models.TextContent}
-					{getFileUrl}
 					onDelete={askObjectDelete}
 				/>
 			{:else if obj.content.kind === 'link'}
 				<LinkContent
 					object={obj}
 					content={obj.content as models.LinkContent}
-					{getFileUrl}
 					onDelete={askObjectDelete}
 				/>
 			{:else if obj.content.kind === 'file'}
 				{#if obj.mime.startsWith('image/')}
-					<ImageContent {sid} object={obj} content={obj.content as models.FileContent} />
+					<ImageContent
+						{sid}
+						object={obj}
+						content={obj.content as models.FileContent}
+						onDelete={askObjectDelete}
+					/>
 				{:else if obj.mime.startsWith('video/')}
-					<VideoContent {sid} object={obj} content={obj.content as models.FileContent} />
+					<VideoContent
+						{sid}
+						object={obj}
+						content={obj.content as models.FileContent}
+						onDelete={askObjectDelete}
+					/>
 				{:else if obj.mime.startsWith('audio/')}
-					<AudioContent {sid} object={obj} content={obj.content as models.FileContent} />
+					<AudioContent
+						{sid}
+						object={obj}
+						content={obj.content as models.FileContent}
+						onDelete={askObjectDelete}
+					/>
 				{/if}
-				<LinkContent
-					object={obj}
-					content={obj.content as models.FileContent}
-					{getFileUrl}
-					onDelete={askObjectDelete}
-					download
-				/>
 			{/if}
 		{/each}
 	</div>
