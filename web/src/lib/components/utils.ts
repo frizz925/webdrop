@@ -1,4 +1,4 @@
-import { toastState } from '../state.svelte';
+import { toastState } from './state.svelte';
 
 export const copyToClipboard = (content: string | Blob, what: string, mime?: string) => {
 	if (content instanceof Blob) {
