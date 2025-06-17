@@ -6,9 +6,28 @@
 		content: TextContent;
 	}
 
-	const { object, getFileUrl, content, onDelete }: Props = $props();
+	const { object, content, getFileUrl, onDelete }: Props = $props();
+	const { isSecret } = content;
+
+	let { secretShown } = $state({ secretShown: false });
 </script>
 
 <Content {object} {getFileUrl} {onDelete}>
-	<div class="overflow-hidden px-4 pt-4 wrap-anywhere whitespace-pre-wrap">{content.data}</div>
+	<div class="overflow-hidden px-4 pt-4 wrap-anywhere whitespace-pre-wrap">
+		{#if isSecret}
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<span
+				class={[
+					'cursor-pointer bg-gray-500 py-1 select-none',
+					secretShown ? 'text-gray-50' : 'text-transparent'
+				]}
+				onclick={() => (secretShown = !secretShown)}
+			>
+				{content.data}
+			</span>
+		{:else}
+			{content.data}
+		{/if}
+	</div>
 </Content>

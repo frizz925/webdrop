@@ -9,6 +9,7 @@ export interface Content {
 
 export interface TextContent extends Content {
 	data: string;
+	isSecret?: boolean;
 }
 
 export interface LinkContent extends Content {
