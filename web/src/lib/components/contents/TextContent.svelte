@@ -26,7 +26,7 @@
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<span
 				class={[
-					'cursor-pointer bg-gray-500 py-1 select-none',
+					'cursor-pointer bg-gray-500 select-none',
 					secretShown ? 'text-gray-50' : 'text-transparent'
 				]}
 				onclick={() => (secretShown = !secretShown)}

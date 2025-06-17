@@ -264,6 +264,7 @@
 				/>
 			{:else if obj.content.kind === 'link'}
 				<LinkContent
+					{sid}
 					object={obj}
 					content={obj.content as models.LinkContent}
 					onDelete={askObjectDelete}
@@ -289,6 +290,14 @@
 						content={obj.content as models.FileContent}
 						{getFileUrl}
 						onDelete={askObjectDelete}
+					/>
+				{:else}
+					<LinkContent
+						{sid}
+						object={obj}
+						content={obj.content as models.FileContent}
+						onDelete={askObjectDelete}
+						download
 					/>
 				{/if}
 			{/if}

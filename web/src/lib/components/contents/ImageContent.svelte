@@ -32,6 +32,7 @@
 	<img {src} alt={content.name} class="w-full" bind:this={img} />
 </a>
 <LinkContent
+	{sid}
 	link={src}
 	object={obj}
 	content={obj.content as FileContent}

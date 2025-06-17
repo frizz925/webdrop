@@ -11,4 +11,11 @@
 	<source {src} />
 	<track kind="captions" />
 </video>
-<LinkContent link={src} object={obj} content={obj.content as FileContent} {onDelete} download />
+<LinkContent
+	{sid}
+	link={src}
+	object={obj}
+	content={obj.content as FileContent}
+	{onDelete}
+	download
+/>
