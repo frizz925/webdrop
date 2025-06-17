@@ -7,6 +7,7 @@
 		faFilm,
 		faImage,
 		faLink,
+		faLock,
 		faMicrophone,
 		faPencil,
 		faPlus,
@@ -35,6 +36,7 @@
 	interface State {
 		form: FormState;
 		text: string;
+		textPlaceholder: string;
 		url: {
 			value: string;
 			title?: string;
@@ -48,6 +50,7 @@
 		({
 			form: FormState.None,
 			text: '',
+			textPlaceholder: 'Enter your message here',
 			url: { value: '' },
 			uploads: [],
 			message: '',
@@ -68,7 +71,8 @@
 		[FormState.Image]: 'image/*',
 		[FormState.Video]: 'video/*',
 		[FormState.Audio]: 'audio/*',
-		[FormState.File]: '*'
+		[FormState.File]: '*',
+		[FormState.Secret]: 'text/x-secret'
 	};
 
 	const resetState = () => {
@@ -77,7 +81,17 @@
 		state = initialState();
 	};
 
-	const changeState = (newState: FormState) => () => (state.form = newState);
+	const changeState = (newState: FormState) => () => {
+		switch (newState) {
+			case FormState.Text:
+				state.textPlaceholder = 'Enter your message here';
+				break;
+			case FormState.Secret:
+				state.textPlaceholder = 'Enter your secret here';
+				break;
+		}
+		state.form = newState;
+	};
 
 	const fileListToUploads = (fileList: FileList) => {
 		const uploads = [];
@@ -160,7 +174,8 @@
 	const submitText = async () =>
 		submit<models.TextContent>('text/plain', {
 			kind: 'text',
-			data: state.text
+			data: state.text,
+			isSecret: state.form === FormState.Secret
 		});
 
 	const submitURL = async () =>
@@ -289,16 +304,17 @@
 		<IconButton hoverBgColor="sky" icon={faFilm} onClick={selectFiles(FormState.Video)} />
 		<IconButton hoverBgColor="sky" icon={faMicrophone} onClick={selectFiles(FormState.Audio)} />
 		<IconButton hoverBgColor="sky" icon={faFile} onClick={selectFiles(FormState.File)} />
+		<IconButton hoverBgColor="sky" icon={faLock} onClick={changeState(FormState.Secret)} />
 	</div>
 </div>
-<div class:hidden={state.form !== FormState.Text}>
+<div class:hidden={state.form !== FormState.Text && state.form !== FormState.Secret}>
 	<div class="relative">
 		<div class="textarea mb-4" contenteditable="plaintext-only" bind:innerText={state.text}></div>
 		<div
 			class="pointer-events-none absolute top-0 left-0 text-gray-500"
 			class:hidden={textInputValid(state.text)}
 		>
-			Enter your message here
+			{state.textPlaceholder}
 		</div>
 	</div>
 	<FormButtons
