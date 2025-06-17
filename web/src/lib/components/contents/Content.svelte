@@ -1,27 +1,25 @@
 <script lang="ts">
-	import type { Content, FileObject, LinkContent, ObjectID, TextContent } from '$lib/models';
-	import { faClipboard, faEllipsisV, faLink, faTrash } from '@fortawesome/free-solid-svg-icons';
+	import type { FileObject, ObjectID } from '$lib/models';
+	import { faEllipsisV, faLink, faTrash } from '@fortawesome/free-solid-svg-icons';
 	import { format, formatDistanceToNowStrict } from 'date-fns';
 	import { onMount, type Snippet } from 'svelte';
+
 	import IconButton from '../buttons/IconButton.svelte';
 	import DropdownMenu, { type Menu } from '../DropdownMenu.svelte';
-	import { toastState } from '../state.svelte';
+	import { copyToClipboard } from '../utils';
 
 	export interface PartialProps {
 		object: FileObject;
-		getFileUrl: (obj: FileObject, content: Content) => string;
 		children?: Snippet;
+		copyMenu?: Menu;
+		fileUrl?: string;
 		onDelete?: (oid: ObjectID) => void;
 	}
 
-	interface Props extends PartialProps {
-		children?: Snippet;
-	}
-
-	const { object: obj, getFileUrl, children, onDelete }: Props = $props();
-	const { id, timestamp, mime, content } = obj;
+	const { object: obj, children, copyMenu, fileUrl, onDelete }: PartialProps = $props();
+	const { id, timestamp, mime } = obj;
 	const datetime = format(timestamp, 'yyyy-MM-dd HH:mm:ss');
-	const isTextContent = mime.startsWith('text/plain') || mime.startsWith('text/x-url');
+	const isTextContent = mime.startsWith('text/');
 
 	let timestampShown = $state(false);
 	const toggleTimestamp = () => {
@@ -38,48 +36,29 @@
 		elapsed = formatDistanceToNowStrict(timestamp) + ' ago';
 	};
 
-	const copyToClipboard = (text: string, what: string) => {
-		navigator.clipboard.writeText(text);
-		toastState.message = `${what} copied`;
-	};
-
-	const copyText = () => {
-		if (mime.startsWith('text/plain')) copyToClipboard((content as TextContent).data, 'Text');
-		else if (mime.startsWith('text/x-url')) copyToClipboard((content as LinkContent).url, 'URL');
-	};
-
 	const copyLink = () => {
+		if (!fileUrl) return;
 		const url = new URL(window.location.toString());
-		url.pathname = getFileUrl(obj, content);
+		url.pathname = fileUrl;
 		copyToClipboard(url.toString(), 'Object URL');
 	};
 
 	const menuList: Menu[] = [
-		{
-			label: 'Copy Text',
-			icon: faClipboard,
-			onClick: copyText,
-			hidden: !isTextContent || !mime.startsWith('text/plain')
-		},
-		{
-			label: 'Copy URL',
-			icon: faLink,
-			onClick: copyText,
-			hidden: !isTextContent || !mime.startsWith('text/x-url')
-		},
+		copyMenu,
 		{
 			label: 'Copy Object URL',
 			icon: faLink,
 			onClick: copyLink,
-			hidden: isTextContent
+			hidden: isTextContent || !fileUrl
 		},
 		{
 			label: 'Delete Object',
 			icon: faTrash,
 			onClick: () => onDelete && onDelete(id),
-			color: 'red'
+			color: 'red',
+			hidden: !onDelete
 		}
-	];
+	].filter((menu) => !!menu);
 
 	onMount(() => {
 		updateElapsed();
