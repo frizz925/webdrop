@@ -271,23 +271,23 @@
 			{:else if obj.content.kind === 'file'}
 				{#if obj.mime.startsWith('image/')}
 					<ImageContent
-						{sid}
 						object={obj}
 						content={obj.content as models.FileContent}
+						{getFileUrl}
 						onDelete={askObjectDelete}
 					/>
 				{:else if obj.mime.startsWith('video/')}
 					<VideoContent
-						{sid}
 						object={obj}
 						content={obj.content as models.FileContent}
+						{getFileUrl}
 						onDelete={askObjectDelete}
 					/>
 				{:else if obj.mime.startsWith('audio/')}
 					<AudioContent
-						{sid}
 						object={obj}
 						content={obj.content as models.FileContent}
+						{getFileUrl}
 						onDelete={askObjectDelete}
 					/>
 				{/if}

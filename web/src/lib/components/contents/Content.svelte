@@ -15,9 +15,7 @@
 		onDelete?: (oid: ObjectID) => void;
 	}
 
-	interface Props extends PartialProps {}
-
-	const { object: obj, children, copyMenu, fileUrl, onDelete }: Props = $props();
+	const { object: obj, children, copyMenu, fileUrl, onDelete }: PartialProps = $props();
 	const { id, timestamp, mime } = obj;
 	const datetime = format(timestamp, 'yyyy-MM-dd HH:mm:ss');
 	const isTextContent = mime.startsWith('text/');
