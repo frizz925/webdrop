@@ -3,12 +3,13 @@
 	import { getFileUrl } from '$lib/utils';
 	import { faDownload, faLink } from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
+
 	import type { Menu } from '../DropdownMenu.svelte';
+	import { copyToClipboard } from '../utils';
 	import Content, { type PartialProps } from './Content.svelte';
-	import { copyToClipboard } from './utils';
 
 	interface Props extends PartialProps {
-		sid: SessionID;
+		sid?: SessionID;
 		link?: string;
 		content: LinkContent | FileContent;
 		download?: boolean;
@@ -24,10 +25,17 @@
 		onDelete
 	}: Props = $props();
 
-	const link =
-		optLink || (content as LinkContent).url || getFileUrl(sid, obj, content as FileContent);
-	const title = (content as LinkContent).title || (content as FileContent).name || link;
+	const getLinkFromContent = () => {
+		if (content.kind === 'link') return (content as LinkContent).url;
+		else if (content.kind === 'file') {
+			if (sid) return getFileUrl(sid, obj, content as FileContent);
+			else throw new Error("Can't get file URL without session ID");
+		}
+		throw new Error(`Can't get link for content kind ${content.kind}`);
+	};
 
+	const link = optLink || getLinkFromContent();
+	const title = (content as LinkContent).title || (content as FileContent).name || link;
 	const copyMenu: Menu = optCopyMenu || {
 		label: 'Copy URL',
 		icon: faLink,

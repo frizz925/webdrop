@@ -3,9 +3,10 @@
 	import { faEllipsisV, faLink, faTrash } from '@fortawesome/free-solid-svg-icons';
 	import { format, formatDistanceToNowStrict } from 'date-fns';
 	import { onMount, type Snippet } from 'svelte';
+
 	import IconButton from '../buttons/IconButton.svelte';
 	import DropdownMenu, { type Menu } from '../DropdownMenu.svelte';
-	import { copyToClipboard } from './utils';
+	import { copyToClipboard } from '../utils';
 
 	export interface PartialProps {
 		object: FileObject;

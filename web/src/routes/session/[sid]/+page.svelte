@@ -32,7 +32,7 @@
 
 	import Toast from '$lib/components/Toast.svelte';
 	import { toastState } from '$lib/components/state.svelte';
-	import * as utils from '$lib/utils';
+	import { copyToClipboard } from '$lib/components/utils';
 	import type { PageData } from './$types';
 
 	const { sid } = page.params;
@@ -57,10 +57,6 @@
 		window.scrollTo(0, 0);
 	};
 
-	const copyToClipboard = (text: string, what: string) => {
-		navigator.clipboard.writeText(text);
-		toastState.message = `${what} copied`;
-	};
 	const copyLink = () => copyToClipboard(getLink(), 'Session URL');
 	const copySlug = () => copyToClipboard(slug, 'Session ID');
 
@@ -69,10 +65,6 @@
 			title: 'WebDrop - Easily share files over the web',
 			url: getLink()
 		});
-	};
-
-	const getFileUrl = (obj: models.FileObject, content: models.Content) => {
-		return utils.getFileUrl(sid, obj, content as models.FileContent);
 	};
 
 	const showQrcode = () => {
@@ -272,23 +264,23 @@
 			{:else if obj.content.kind === 'file'}
 				{#if obj.mime.startsWith('image/')}
 					<ImageContent
+						{sid}
 						object={obj}
 						content={obj.content as models.FileContent}
-						{getFileUrl}
 						onDelete={askObjectDelete}
 					/>
 				{:else if obj.mime.startsWith('video/')}
 					<VideoContent
+						{sid}
 						object={obj}
 						content={obj.content as models.FileContent}
-						{getFileUrl}
 						onDelete={askObjectDelete}
 					/>
 				{:else if obj.mime.startsWith('audio/')}
 					<AudioContent
+						{sid}
 						object={obj}
 						content={obj.content as models.FileContent}
-						{getFileUrl}
 						onDelete={askObjectDelete}
 					/>
 				{:else}

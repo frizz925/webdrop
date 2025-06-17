@@ -1,8 +1,9 @@
 <script lang="ts">
 	import type { TextContent } from '$lib/models';
 	import { faClipboard } from '@fortawesome/free-solid-svg-icons';
+
+	import { copyToClipboard } from '../utils';
 	import Content, { type PartialProps } from './Content.svelte';
-	import { copyToClipboard } from './utils';
 
 	interface Props extends PartialProps {
 		content: TextContent;
