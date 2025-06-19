@@ -3,12 +3,13 @@ use std::{
     fmt::Display,
     io::{Error as IoError, ErrorKind},
     result::Result as StdResult,
+    sync::Arc,
 };
 
 use crate::{
     models::{
         event::EventName,
-        session::{Session, SessionId},
+        session::{CreateSession, SessionDto, SessionId},
     },
     registries::{OBJECT_SERVICES, WEBSOCKET_SERVICES},
     repositories::session::SessionRepository,
@@ -18,6 +19,7 @@ use crate::{
 #[derive(Debug)]
 pub enum SessionError {
     NotFound,
+    AuthFail,
     Other(Box<dyn StdError>),
 }
 
@@ -25,6 +27,7 @@ impl Display for SessionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::NotFound => "Session not found".to_owned(),
+            Self::AuthFail => "Authentication failed".to_owned(),
             Self::Other(e) => e.to_string(),
         };
         f.write_str(&s)
@@ -36,23 +39,23 @@ impl StdError for SessionError {}
 pub type Result<T> = StdResult<T, SessionError>;
 
 pub struct SessionService<R> {
-    repository: R,
+    repository: Arc<R>,
     websocket: WebSocketServiceFactory,
 }
 
 impl<R: SessionRepository> SessionService<R> {
-    pub fn new(repository: R, websocket: WebSocketServiceFactory) -> Self {
+    pub fn new(repository: Arc<R>, websocket: WebSocketServiceFactory) -> Self {
         Self {
             repository,
             websocket,
         }
     }
 
-    pub async fn create(&self) -> Result<Session> {
-        normalize_result(self.repository.create().await)
+    pub async fn create(&self, req: Option<CreateSession>) -> Result<SessionDto> {
+        normalize_result(self.repository.create(req).await)
     }
 
-    pub async fn get(&self, sid: &SessionId) -> Result<Session> {
+    pub async fn get(&self, sid: &SessionId) -> Result<SessionDto> {
         normalize_result(self.repository.get(sid).await)
     }
 
@@ -67,6 +70,19 @@ impl<R: SessionRepository> SessionService<R> {
             OBJECT_SERVICES.write().unwrap().remove(sid);
             WEBSOCKET_SERVICES.write().unwrap().remove(sid);
         }))
+    }
+
+    pub async fn auth(&self, sid: &SessionId, auth_key: &[u8]) -> Result<()> {
+        if self
+            .repository
+            .auth(sid, auth_key)
+            .await
+            .map_err(|e| SessionError::Other(e))?
+        {
+            Ok(())
+        } else {
+            Err(SessionError::AuthFail)
+        }
     }
 }
 

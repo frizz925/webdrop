@@ -21,6 +21,17 @@ export interface FileContent extends Content {
 	name: string;
 }
 
+export interface EncryptedContent extends Content {
+	cipher: ContentCipherParams;
+	ciphertext: string;
+	wrappedKey: string;
+}
+
+export interface ContentCipherParams {
+	name: string;
+	iv: string;
+}
+
 export interface Upload<C extends Content = Content> {
 	mime: string;
 	content: C;
@@ -40,22 +51,26 @@ export interface FileObject<C extends Content = Content> {
 	content: C;
 }
 
-export interface SessionDto<C extends Content = Content> {
+export interface Session {
 	id: SessionID;
-	objects: FileObjectDto<C>[];
+	crypto?: SessionCrypto;
 }
 
-export interface Session<C extends Content = Content> {
-	id: SessionID;
-	objects: FileObject<C>[];
+export interface SessionCrypto {
+	kdfParams: SessionKDFParams;
 }
 
-export const sessionFromDto = (dto: SessionDto) => {
-	return {
-		id: dto.id,
-		objects: dto.objects.map(objectFromDto)
-	} as Session;
-};
+export interface SessionKDFParams {
+	name: string;
+	hash: string;
+	salt: string;
+	iterations: number;
+}
+
+export interface SessionAuthParams {
+	name: string;
+	iv: string;
+}
 
 export const objectFromDto = <C extends Content>(dto: FileObjectDto<C>) => {
 	return {

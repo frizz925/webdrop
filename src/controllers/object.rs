@@ -7,7 +7,7 @@ use std::{
 use axum::{
     body::Body,
     extract::{multipart::MultipartError, DefaultBodyLimit, Multipart, Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     routing::{get, post},
     Json, Router,
 };
@@ -16,11 +16,12 @@ use tokio_util::io::{ReaderStream, StreamReader};
 use tracing::{event, Level};
 
 use crate::{
+    controllers::AuthKeyExtractor,
     models::{
-        object::{FileContent, Object, ObjectId, Upload},
+        object::{FileContent, ObjectDao, ObjectId, Upload},
         session::SessionId,
     },
-    repositories::object::ObjectRepository,
+    repositories::{object::ObjectRepository, session::SessionRepository},
     services::object::{ObjectError, ObjectService},
     ObjectServiceFactory,
 };
@@ -64,9 +65,11 @@ async fn download_handler(
 async fn upload_handler(
     State(controller): State<Arc<ObjectController>>,
     Path(sid): Path<SessionId>,
+    headers: HeaderMap,
     multipart: Multipart,
-) -> Result<Json<Object>, StatusCode> {
+) -> Result<Json<ObjectDao>, StatusCode> {
     let service = (controller.factory)(&sid);
+    check_auth_key(&service, &headers).await?;
     let result = do_upload(service, multipart).await.map_err(|err| {
         if let Some(e) = err.downcast_ref::<MultipartError>() {
             event!(Level::ERROR, "Multipart error: {e}");
@@ -82,10 +85,10 @@ async fn upload_handler(
     }
 }
 
-async fn do_upload<R: ObjectRepository>(
-    service: Arc<ObjectService<R>>,
+async fn do_upload<O: ObjectRepository, S: SessionRepository>(
+    service: Arc<ObjectService<O, S>>,
     mut multipart: Multipart,
-) -> Result<Option<Object>, Box<dyn Error>> {
+) -> Result<Option<ObjectDao>, Box<dyn Error>> {
     while let Some(field) = multipart.next_field().await? {
         if let (Some(name), Some(filename)) = (field.name(), field.file_name()) {
             if name != "file" {
@@ -101,4 +104,19 @@ async fn do_upload<R: ObjectRepository>(
         }
     }
     Ok(None)
+}
+
+async fn check_auth_key<O: ObjectRepository, S>(
+    service: &Arc<ObjectService<O, S>>,
+    headers: &HeaderMap,
+) -> Result<(), StatusCode> {
+    let auth_key = headers.extract_auth_key()?;
+    service.auth(&auth_key).await.map_err(|err| match err {
+        ObjectError::NotFound => StatusCode::NOT_FOUND,
+        ObjectError::AuthFail => StatusCode::UNAUTHORIZED,
+        ObjectError::Other(e) => {
+            event!(Level::ERROR, "Authentication error: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+    })
 }

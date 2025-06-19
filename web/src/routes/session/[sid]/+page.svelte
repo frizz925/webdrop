@@ -1,14 +1,11 @@
 <script lang="ts">
-	import { page } from '$app/state';
-	import type * as models from '$lib/models';
-	import type { NotificationEvent, NotificationHandlers } from '$lib/notification';
-	import { sluggify } from '$lib/utils';
 	import {
-		faClipboard,
+		faCopy,
 		faEllipsisV,
 		faEye,
 		faEyeSlash,
 		faLink,
+		faLock,
 		faQrcode,
 		faShare,
 		faSignOut,
@@ -16,6 +13,11 @@
 		faX
 	} from '@fortawesome/free-solid-svg-icons';
 	import { onMount } from 'svelte';
+
+	import { page } from '$app/state';
+	import * as models from '$lib/models';
+	import type { NotificationEvent, NotificationHandlers } from '$lib/notification';
+	import { base64URL, sluggify, unbase64URL } from '$lib/utils';
 
 	import Form from '$lib/components/Form.svelte';
 	import IconButton from '$lib/components/buttons/IconButton.svelte';
@@ -33,13 +35,29 @@
 	import Toast from '$lib/components/Toast.svelte';
 	import { toastState } from '$lib/components/state.svelte';
 	import { copyToClipboard } from '$lib/components/utils';
+	import {
+		authorizedRequest,
+		authorizedURL,
+		createAuthKey,
+		createMasterKey,
+		decodeKDFParams,
+		encodeBuffer,
+		importMasterKey,
+		maybeDecryptObject,
+		setCryptoConfig
+	} from '$lib/crypto';
+
+	import { getObjects } from '$lib/api/session';
+	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import type { PageData } from './$types';
 
 	const { sid } = page.params;
-	const slug = sluggify(sid);
-
 	const { data }: { data: PageData } = $props();
+	const slug = sluggify(sid);
+	const session = $state(data.session);
+	const encrypted = !!session.crypto;
 
+	let sessionReady = $state(false);
 	let sidShown = $state(false);
 	let qrcodeShown = $state(false);
 	let dropdownShown = $state(false);
@@ -47,44 +65,48 @@
 	let confirmSessionDelete = $state(false);
 	let confirmObjectDelete = $state(false);
 
-	let session = $state(data.session);
+	let objects: models.FileObject[] = $state([]);
+	let objectIDs = new Set();
 
-	const objectIDs = new Set(session.objects.map((o) => o.id));
+	const objectURL = (oid: models.ObjectID) => `/api/session/${sid}/objects/${oid}`;
 
-	const getLink = () => window.location.toString();
-
-	const returnToTop = () => {
-		window.scrollTo(0, 0);
+	const getURL = () => new URL(window.location.toString());
+	const getSignedURL = () => {
+		const url = getURL();
+		const key = window.localStorage.getItem(sid);
+		if (key) url.searchParams.set('key', base64URL(key));
+		return url;
 	};
-
-	const copyLink = () => copyToClipboard(getLink(), 'Session URL');
-	const copySlug = () => copyToClipboard(slug, 'Session ID');
+	const getSignedLink = () => getSignedURL().toString();
 
 	const shareLink = () => {
 		navigator.share({
 			title: 'WebDrop - Easily share files over the web',
-			url: getLink()
+			url: getSignedLink()
 		});
 	};
 
-	const showQrcode = () => {
-		qrcodeShown = true;
-	};
+	const copyLink = () => copyToClipboard(getSignedLink(), 'Session URL');
+	const copySlug = () => copyToClipboard(slug, 'Session ID');
+
+	const showQrcode = () => (qrcodeShown = true);
+	const returnToTop = () => window.scrollTo(0, 0);
 
 	const addObject = (obj: models.FileObject) => {
 		if (objectIDs.has(obj.id)) return;
 		objectIDs.add(obj.id);
-		session.objects.unshift(obj);
+		objects.unshift(obj);
 	};
 
 	const deleteObject = (oid: models.ObjectID) => {
 		if (!objectIDs.has(oid)) return;
 		objectIDs.delete(oid);
-		session.objects = session.objects.filter((other) => other.id != oid);
+		const obj = objects.find((obj) => obj.id === oid);
+		if (obj) objects.splice(objects.indexOf(obj), 1);
 	};
 
-	const onUpload = (obj: models.FileObject) => {
-		addObject(obj);
+	const onUpload = async (obj: models.FileObject) => {
+		addObject(await maybeDecryptObject(obj));
 		toastState.message = 'Object uploaded';
 	};
 
@@ -93,22 +115,39 @@
 	const exitSession = () => {
 		if (exited) return;
 		exited = true;
-
 		if (ws) ws.close();
 		window.location.assign('/');
 	};
 
 	const deleteSession = async () => {
-		await fetch(`/api/session/${sid}`, { method: 'DELETE' });
+		const res = await fetch(`/api/session/${sid}`, authorizedRequest({ method: 'DELETE' }));
+		if (!res.ok) {
+			toastState.message = '';
+			return;
+		}
+		window.localStorage.removeItem(sid);
 		exitSession();
+	};
+
+	let selectedObjectID: models.ObjectID;
+	const askObjectDelete = (oid: models.ObjectID) => {
+		selectedObjectID = oid;
+		confirmObjectDelete = true;
+	};
+	const doObjectDelete = async () => {
+		const oid = selectedObjectID;
+		await fetch(objectURL(oid), authorizedRequest({ method: 'DELETE' }));
+		deleteObject(oid);
+		confirmObjectDelete = false;
+		toastState.message = 'Object deleted';
 	};
 
 	const notificationHandlers: NotificationHandlers = {
 		'object.created': async (evt: NotificationEvent) => {
 			const oid = evt.data as models.ObjectID;
-			const res = await fetch(`/api/session/${sid}/${oid}`);
+			const res = await fetch(objectURL(oid), authorizedRequest());
 			const obj = (await res.json()) as models.FileObject;
-			addObject(obj);
+			addObject(await maybeDecryptObject(obj));
 		},
 		'object.deleted': (evt: NotificationEvent) => {
 			deleteObject(evt.data as models.ObjectID);
@@ -121,7 +160,7 @@
 		url.protocol = url.protocol.replace('http', 'ws');
 		url.pathname = `/ws/${sid}`;
 
-		ws = new WebSocket(url);
+		ws = new WebSocket(authorizedURL(url));
 		ws.onopen = () => {
 			console.log('WebSocket connected');
 		};
@@ -145,20 +184,29 @@
 		};
 	};
 
-	let selectedObjectID: models.ObjectID;
-	const askObjectDelete = (oid: models.ObjectID) => {
-		selectedObjectID = oid;
-		confirmObjectDelete = true;
-	};
-	const doObjectDelete = async () => {
-		const oid = selectedObjectID;
-		await fetch(`/api/session/${sid}/${oid}`, { method: 'DELETE' });
-		deleteObject(oid);
-		confirmObjectDelete = false;
-		toastState.message = 'Object deleted';
+	const setupSessionCrypto = async (config: models.SessionCrypto) => {
+		const password = window.localStorage.getItem(sid);
+		if (!password)
+			throw new Error('Session is encrypted but password was not found in the LocalStorage');
+
+		const kdfParams = decodeKDFParams(config.kdfParams);
+		const { masterKey: masterKeyRaw } = await createMasterKey(password, kdfParams);
+		const masterKey = await importMasterKey(masterKeyRaw);
+		const authKeyRaw = await createAuthKey(masterKeyRaw);
+		const authKey = encodeBuffer(authKeyRaw);
+
+		setCryptoConfig({ masterKey, authKey, authKeyURL: base64URL(authKey) });
 	};
 
-	const sessionMenuList: Menu[] = [
+	const loadObjects = async () => {
+		objects = await getObjects(sid);
+		objectIDs = new Set(objects.map((o) => o.id));
+		await Promise.all(
+			objects.map(async (obj, idx) => (objects[idx] = await maybeDecryptObject(obj)))
+		);
+	};
+
+	const sessionMenuList: () => Menu[] = () => [
 		{
 			label: 'Show QR Code',
 			icon: faQrcode,
@@ -176,7 +224,7 @@
 		},
 		{
 			label: 'Copy Session ID',
-			icon: faClipboard,
+			icon: faCopy,
 			onClick: copySlug
 		},
 		{
@@ -188,21 +236,38 @@
 			label: 'Terminate Session',
 			icon: faX,
 			onClick: () => (confirmSessionDelete = true),
-			color: 'red'
+			color: 'red',
+			hidden: !sessionReady
 		}
 	];
 
-	onMount(connectWS);
+	onMount(async () => {
+		const url = getURL();
+		const urlKey = url.searchParams.get('key');
+		if (urlKey) {
+			if (!window.localStorage.getItem(sid)) window.localStorage.setItem(sid, unbase64URL(urlKey));
+			url.searchParams.delete('key');
+			window.location.replace(url);
+		}
+
+		if (session.crypto) await setupSessionCrypto(session.crypto);
+		await loadObjects();
+		connectWS();
+		sessionReady = true;
+	});
 </script>
 
 <div
-	class="fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-center border-b bg-white px-4 dark:bg-slate-800"
+	class="fixed left-0 top-0 z-10 flex h-12 w-full items-center justify-center border-b bg-white px-4 dark:bg-slate-800"
 >
 	<button class="cursor-pointer text-xl font-bold" onclick={returnToTop}>WebDrop</button>
 </div>
 <div class="mt-12 bg-white dark:bg-slate-800">
-	<div class="flex items-center justify-start border-b py-1 pr-2 pl-4">
+	<div class="flex items-center justify-start border-b py-1 pl-4 pr-2">
 		<div class="flex grow items-center justify-start">
+			<div class="mr-2 text-xs" class:hidden={!encrypted}>
+				<FontAwesomeIcon icon={faLock} />
+			</div>
 			<div class="mr-2">
 				<span class="hidden font-semibold sm:inline">Session ID</span>
 				<span class="inline font-semibold sm:hidden">SID</span>
@@ -224,8 +289,8 @@
 				<IconButton icon={faShare} size="xs" onClick={shareLink} />
 			</div>
 			<div class="text-sub flex items-center justify-start">
-				<IconButton icon={faClipboard} size="xs" onClick={copySlug} />
-				<DropdownMenu bind:shown={dropdownShown} menuList={sessionMenuList}>
+				<IconButton icon={faCopy} size="xs" onClick={copySlug} />
+				<DropdownMenu bind:shown={dropdownShown} menuList={sessionMenuList()}>
 					<IconButton
 						icon={faEllipsisV}
 						size="xs"
@@ -243,11 +308,11 @@
 			/>
 		</div>
 	</div>
-	<div class="border-b p-4">
+	<div class="border-b p-4" class:hidden={!sessionReady}>
 		<Form {sid} onSubmit={onUpload} />
 	</div>
 	<div>
-		{#each session.objects as obj (obj.id)}
+		{#each objects as obj (obj.id)}
 			{#if obj.content.kind === 'text'}
 				<TextContent
 					object={obj}
@@ -301,7 +366,7 @@
 	<div class="text-xl font-bold">Session termination</div>
 	<div class="mt-4">
 		<div>Do you want to terminate the session?</div>
-		<div class="font-semibold text-red-400 italic">Your uploaded files will be deleted!</div>
+		<div class="font-semibold italic text-red-400">Your uploaded files will be deleted!</div>
 	</div>
 	<div class="mt-8 text-right">
 		<button
@@ -320,7 +385,7 @@
 	<div class="text-xl font-bold">Delete object</div>
 	<div class="mt-4">
 		<div>Are you sure you want to delete this object?</div>
-		<div class="font-semibold text-red-400 italic">Deleted objects can't be recovered!</div>
+		<div class="font-semibold italic text-red-400">Deleted objects can't be recovered!</div>
 	</div>
 	<div class="mt-8 text-right">
 		<button

@@ -7,13 +7,13 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use webdrop::{
     controllers::MainController,
     models::session::SessionId,
-    registries::{OBJECT_SERVICES, WEBSOCKET_SERVICES},
-    services::{object::ObjectService, session::SessionService, websocket::WebSocketService},
-    ConcreteObjectRepository, ConcreteObjectService, ConcreteServiceRepository,
+    registries::{OBJECT_REPOSITORIES, OBJECT_SERVICES, SESSION_REPOSITORY, WEBSOCKET_SERVICES},
+    services::{object::ObjectService, session::SessionService},
+    ConcreteObjectRepository, ConcreteObjectService, ConcreteSessionRepository,
+    ConcreteWebSocketService, STORAGE_DIR,
 };
 
 const LISTENER_ADDR: &str = "0.0.0.0:8000";
-const STORAGE_DIR: &str = "storage";
 const NOTIFICATION_BACKLOG_SIZE: usize = 256;
 
 #[tokio::main]
@@ -34,8 +34,7 @@ async fn main() {
         Err(e) => panic!("Failed to check for storage directory: {e}"),
     }
 
-    let repository = ConcreteServiceRepository::new(STORAGE_DIR);
-    let service = SessionService::new(repository, websocket_service_factory);
+    let service = SessionService::new(session_repository_factory(), websocket_service_factory);
     let controller =
         MainController::new(service, websocket_service_factory, object_service_factory);
     let router = controller.into_router().layer(
@@ -58,13 +57,16 @@ async fn main() {
     axum::serve(listener, router).await.unwrap();
 }
 
-fn websocket_service_factory(sid: &SessionId) -> Arc<WebSocketService> {
+fn websocket_service_factory(sid: &SessionId) -> Arc<ConcreteWebSocketService> {
     let services = WEBSOCKET_SERVICES.read().unwrap();
     if let Some(service) = services.get(sid) {
         Arc::clone(service)
     } else {
         drop(services);
-        let service = Arc::new(WebSocketService::new(NOTIFICATION_BACKLOG_SIZE));
+        let service = Arc::new(ConcreteWebSocketService::new(
+            NOTIFICATION_BACKLOG_SIZE,
+            session_repository_factory(),
+        ));
         WEBSOCKET_SERVICES
             .write()
             .unwrap()
@@ -79,10 +81,7 @@ fn object_service_factory(sid: &SessionId) -> Arc<ConcreteObjectService> {
         Arc::clone(service)
     } else {
         drop(services);
-        let dir = PathBuf::from_str(STORAGE_DIR)
-            .unwrap()
-            .join(sid.to_string());
-        let repository = ConcreteObjectRepository::new(dir);
+        let repository = object_repository_factory(sid);
         let websocket = websocket_service_factory(sid);
         let service = Arc::new(ObjectService::new(repository, websocket));
         OBJECT_SERVICES
@@ -90,5 +89,27 @@ fn object_service_factory(sid: &SessionId) -> Arc<ConcreteObjectService> {
             .unwrap()
             .insert(*sid, service.clone());
         service
+    }
+}
+
+fn session_repository_factory() -> Arc<ConcreteSessionRepository> {
+    Arc::clone(&SESSION_REPOSITORY)
+}
+
+fn object_repository_factory(sid: &SessionId) -> Arc<ConcreteObjectRepository> {
+    let repositories = OBJECT_REPOSITORIES.read().unwrap();
+    if let Some(repository) = repositories.get(sid) {
+        Arc::clone(repository)
+    } else {
+        drop(repositories);
+        let dir = PathBuf::from_str(STORAGE_DIR)
+            .unwrap()
+            .join(sid.to_string());
+        let repository = Arc::new(ConcreteObjectRepository::new(dir));
+        OBJECT_REPOSITORIES
+            .write()
+            .unwrap()
+            .insert(*sid, repository.clone());
+        repository
     }
 }
