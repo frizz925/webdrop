@@ -26,4 +26,6 @@ pub trait ObjectRepository: Unpin + Send + Sync {
     ) -> impl Future<Output = Result<Box<dyn AsyncRead + Unpin + Send + Sync>>>;
 
     fn delete(&self, oid: &ObjectId) -> impl Future<Output = Result<()>>;
+
+    fn auth(&self, auth_key: &str) -> impl Future<Output = Result<bool>>;
 }

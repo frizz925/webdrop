@@ -7,9 +7,10 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use webdrop::{
     controllers::MainController,
     models::session::SessionId,
-    registries::{OBJECT_SERVICES, WEBSOCKET_SERVICES},
-    services::{object::ObjectService, session::SessionService, websocket::WebSocketService},
+    registries::{OBJECT_REPOSITORIES, OBJECT_SERVICES, WEBSOCKET_SERVICES},
+    services::{object::ObjectService, session::SessionService},
     ConcreteObjectRepository, ConcreteObjectService, ConcreteServiceRepository,
+    ConcreteWebSocketService,
 };
 
 const LISTENER_ADDR: &str = "0.0.0.0:8000";
@@ -58,13 +59,17 @@ async fn main() {
     axum::serve(listener, router).await.unwrap();
 }
 
-fn websocket_service_factory(sid: &SessionId) -> Arc<WebSocketService> {
+fn websocket_service_factory(sid: &SessionId) -> Arc<ConcreteWebSocketService> {
     let services = WEBSOCKET_SERVICES.read().unwrap();
     if let Some(service) = services.get(sid) {
         Arc::clone(service)
     } else {
         drop(services);
-        let service = Arc::new(WebSocketService::new(NOTIFICATION_BACKLOG_SIZE));
+        let repository = object_repository_factory(sid);
+        let service = Arc::new(ConcreteWebSocketService::new(
+            NOTIFICATION_BACKLOG_SIZE,
+            repository,
+        ));
         WEBSOCKET_SERVICES
             .write()
             .unwrap()
@@ -79,16 +84,31 @@ fn object_service_factory(sid: &SessionId) -> Arc<ConcreteObjectService> {
         Arc::clone(service)
     } else {
         drop(services);
-        let dir = PathBuf::from_str(STORAGE_DIR)
-            .unwrap()
-            .join(sid.to_string());
-        let repository = ConcreteObjectRepository::new(dir);
         let websocket = websocket_service_factory(sid);
+        let repository = object_repository_factory(sid);
         let service = Arc::new(ObjectService::new(repository, websocket));
         OBJECT_SERVICES
             .write()
             .unwrap()
             .insert(*sid, service.clone());
         service
+    }
+}
+
+fn object_repository_factory(sid: &SessionId) -> Arc<ConcreteObjectRepository> {
+    let repositories = OBJECT_REPOSITORIES.read().unwrap();
+    if let Some(repository) = repositories.get(sid) {
+        Arc::clone(repository)
+    } else {
+        drop(repositories);
+        let dir = PathBuf::from_str(STORAGE_DIR)
+            .unwrap()
+            .join(sid.to_string());
+        let repository = Arc::new(ConcreteObjectRepository::new(dir));
+        OBJECT_REPOSITORIES
+            .write()
+            .unwrap()
+            .insert(*sid, repository.clone());
+        repository
     }
 }

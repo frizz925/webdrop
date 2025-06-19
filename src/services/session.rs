@@ -8,7 +8,7 @@ use std::{
 use crate::{
     models::{
         event::EventName,
-        session::{Session, SessionId},
+        session::{CreateSession, Session, SessionId},
     },
     registries::{OBJECT_SERVICES, WEBSOCKET_SERVICES},
     repositories::session::SessionRepository,
@@ -18,6 +18,7 @@ use crate::{
 #[derive(Debug)]
 pub enum SessionError {
     NotFound,
+    AuthFail,
     Other(Box<dyn StdError>),
 }
 
@@ -25,6 +26,7 @@ impl Display for SessionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::NotFound => "Session not found".to_owned(),
+            Self::AuthFail => "Authentication failed".to_owned(),
             Self::Other(e) => e.to_string(),
         };
         f.write_str(&s)
@@ -48,8 +50,8 @@ impl<R: SessionRepository> SessionService<R> {
         }
     }
 
-    pub async fn create(&self) -> Result<Session> {
-        normalize_result(self.repository.create().await)
+    pub async fn create(&self, req: CreateSession) -> Result<Session> {
+        normalize_result(self.repository.create(req).await)
     }
 
     pub async fn get(&self, sid: &SessionId) -> Result<Session> {
@@ -67,6 +69,19 @@ impl<R: SessionRepository> SessionService<R> {
             OBJECT_SERVICES.write().unwrap().remove(sid);
             WEBSOCKET_SERVICES.write().unwrap().remove(sid);
         }))
+    }
+
+    pub async fn auth(&self, sid: &SessionId, auth_key: &str) -> Result<()> {
+        if self
+            .repository
+            .auth(sid, auth_key)
+            .await
+            .map_err(|e| SessionError::Other(e))?
+        {
+            Ok(())
+        } else {
+            Err(SessionError::AuthFail)
+        }
     }
 }
 

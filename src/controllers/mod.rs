@@ -6,6 +6,7 @@ mod websocket;
 use std::error::Error;
 
 use axum::http::StatusCode;
+use serde::Deserialize;
 
 use crate::services::{object::ObjectError, session::SessionError};
 
@@ -33,4 +34,9 @@ impl StatusCodeError for SessionError {
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
+}
+
+#[derive(Deserialize)]
+pub struct AuthParams {
+    auth: Option<String>,
 }

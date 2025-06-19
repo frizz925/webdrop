@@ -6,7 +6,7 @@ use std::{
 
 use axum::{
     body::Body,
-    extract::{multipart::MultipartError, DefaultBodyLimit, Multipart, Path, State},
+    extract::{multipart::MultipartError, DefaultBodyLimit, Multipart, Path, Query, State},
     http::StatusCode,
     routing::{get, post},
     Json, Router,
@@ -16,6 +16,7 @@ use tokio_util::io::{ReaderStream, StreamReader};
 use tracing::{event, Level};
 
 use crate::{
+    controllers::AuthParams,
     models::{
         object::{FileContent, Object, ObjectId, Upload},
         session::SessionId,
@@ -64,9 +65,11 @@ async fn download_handler(
 async fn upload_handler(
     State(controller): State<Arc<ObjectController>>,
     Path(sid): Path<SessionId>,
+    Query(params): Query<AuthParams>,
     multipart: Multipart,
 ) -> Result<Json<Object>, StatusCode> {
     let service = (controller.factory)(&sid);
+    check_auth_key(&service, &params).await?;
     let result = do_upload(service, multipart).await.map_err(|err| {
         if let Some(e) = err.downcast_ref::<MultipartError>() {
             event!(Level::ERROR, "Multipart error: {e}");
@@ -101,4 +104,21 @@ async fn do_upload<R: ObjectRepository>(
         }
     }
     Ok(None)
+}
+
+async fn check_auth_key<R: ObjectRepository>(
+    service: &Arc<ObjectService<R>>,
+    params: &AuthParams,
+) -> Result<(), StatusCode> {
+    service
+        .auth(params.auth.as_deref().unwrap_or_default())
+        .await
+        .map_err(|err| match err {
+            ObjectError::NotFound => StatusCode::NOT_FOUND,
+            ObjectError::AuthFail => StatusCode::UNAUTHORIZED,
+            ObjectError::Other(e) => {
+                event!(Level::ERROR, "Authentication error: {e}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        })
 }

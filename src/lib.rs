@@ -17,5 +17,7 @@ pub type ConcreteSessionService = SessionService<ConcreteServiceRepository>;
 pub type ConcreteObjectRepository = ObjectFsRepository;
 pub type ConcreteObjectService = ObjectService<ConcreteObjectRepository>;
 
-pub(crate) type WebSocketServiceFactory = fn(&SessionId) -> Arc<WebSocketService>;
+pub type ConcreteWebSocketService = WebSocketService<ConcreteObjectRepository>;
+
+pub(crate) type WebSocketServiceFactory = fn(&SessionId) -> Arc<ConcreteWebSocketService>;
 pub(crate) type ObjectServiceFactory = fn(&SessionId) -> Arc<ConcreteObjectService>;
