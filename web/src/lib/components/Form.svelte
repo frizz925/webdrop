@@ -7,13 +7,19 @@
 		faFilm,
 		faImage,
 		faLink,
-		faLock,
 		faMicrophone,
 		faPencil,
 		faPlus,
+		faShieldHalved,
 		faUpload
 	} from '@fortawesome/free-solid-svg-icons';
 
+	import {
+		AUTH_KEY_HEADER,
+		authorizedRequest,
+		getCryptoConfig,
+		maybeEncryptUpload
+	} from '$lib/crypto';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { onMount } from 'svelte';
 	import FormButtons from './buttons/FormButtons.svelte';
@@ -129,9 +135,7 @@
 		);
 	};
 
-	const textInputValid = (value: string) => {
-		return !state.uploading && value.trim().length > 0;
-	};
+	const textInputValid = (value: string) => value.trim().length > 0;
 
 	const updateURL = (evt: Event) => {
 		const el = evt.target as HTMLInputElement;
@@ -159,10 +163,13 @@
 	};
 
 	const submit = async <C extends models.Content>(mime: string, content: C) => {
-		const upload: models.Upload<C> = { mime, content };
+		const upload = await maybeEncryptUpload({ mime, content });
 		state.uploading = true;
-		const res = await fetch(`/api/session/${sid}`, jsonRequest('POST', upload));
-		if (res.status >= 400) {
+		const res = await fetch(
+			`/api/session/${sid}/objects`,
+			authorizedRequest(jsonRequest('POST', upload))
+		);
+		if (!res.ok) {
 			state = { ...state, uploading: false, message: 'Failed to send' };
 			throw res;
 		}
@@ -193,11 +200,13 @@
 		const xhr = new XMLHttpRequest();
 		upload.xhr = xhr;
 
+		const config = getCryptoConfig();
 		const promise = new Promise<models.FileObjectDto>((resolve, reject) => {
 			xhr.onload = () => {
 				upload.progress = 1.0;
 				upload.finished = true;
-				resolve(JSON.parse(xhr.responseText) as models.FileObjectDto);
+				if (xhr.status < 400) resolve(JSON.parse(xhr.responseText) as models.FileObjectDto);
+				else reject(xhr);
 			};
 			xhr.onerror = () => {
 				reject(xhr);
@@ -210,6 +219,7 @@
 			upload.progress = 0.0;
 		};
 		xhr.open('POST', `/objects/${sid}`);
+		if (config) xhr.setRequestHeader(AUTH_KEY_HEADER, config.authKey);
 		xhr.send(data);
 
 		try {
@@ -304,14 +314,14 @@
 		<IconButton hoverBgColor="sky" icon={faFilm} onClick={selectFiles(FormState.Video)} />
 		<IconButton hoverBgColor="sky" icon={faMicrophone} onClick={selectFiles(FormState.Audio)} />
 		<IconButton hoverBgColor="sky" icon={faFile} onClick={selectFiles(FormState.File)} />
-		<IconButton hoverBgColor="sky" icon={faLock} onClick={changeState(FormState.Secret)} />
+		<IconButton hoverBgColor="sky" icon={faShieldHalved} onClick={changeState(FormState.Secret)} />
 	</div>
 </div>
 <div class:hidden={state.form !== FormState.Text && state.form !== FormState.Secret}>
 	<div class="relative">
 		<div class="textarea mb-4" contenteditable="plaintext-only" bind:innerText={state.text}></div>
 		<div
-			class="pointer-events-none absolute top-0 left-0 text-gray-500"
+			class="pointer-events-none absolute left-0 top-0 text-gray-500"
 			class:hidden={textInputValid(state.text)}
 		>
 			{state.textPlaceholder}
@@ -319,7 +329,7 @@
 	</div>
 	<FormButtons
 		message={state.message}
-		disabled={!textInputValid(state.text)}
+		disabled={state.uploading || !textInputValid(state.text)}
 		onCancel={resetState}
 		onSubmit={submitText}
 	/>
@@ -349,6 +359,7 @@
 		</div>
 	</div>
 	<FormButtons
+		message={state.message}
 		disabled={state.uploading}
 		onCancel={state.uploading ? cancelUpload : resetState}
 		onSubmit={uploadFiles}

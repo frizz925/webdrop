@@ -1,19 +1,20 @@
 use std::{
+    fs,
     io::{Error as IoError, ErrorKind},
     path::{Path, PathBuf},
 };
 
-use tokio::{
-    fs,
-    io::{copy, AsyncRead, AsyncReadExt, AsyncWriteExt},
-};
+use tokio::io::AsyncRead;
 
 use crate::{
     models::{
-        object::{Object, ObjectId, Upload},
-        session::Session,
+        object::{ObjectDao, ObjectId, Upload},
+        session::SessionDao,
     },
-    repositories::{Result, SESSION_FILE},
+    repositories::{
+        fs::{AuthorizedRepository, BaseFsRepository},
+        Result, SESSION_AUTH_KEY_FILE, SESSION_FILE,
+    },
 };
 
 use super::ObjectRepository;
@@ -33,6 +34,10 @@ impl ObjectFsRepository {
         self.dir.join(SESSION_FILE)
     }
 
+    fn session_auth_key_path(&self) -> PathBuf {
+        self.dir.join(SESSION_AUTH_KEY_FILE)
+    }
+
     fn object_metadata_path(&self, oid: &ObjectId) -> PathBuf {
         self.dir.join(format!("{oid}.json"))
     }
@@ -41,70 +46,62 @@ impl ObjectFsRepository {
         self.dir.join(oid.to_string())
     }
 
-    async fn get_object(&self, oid: &ObjectId) -> Result<Object> {
-        let path = self.object_metadata_path(oid);
-        let mut file = fs::File::open(path).await?;
-        let mut json = String::new();
-        file.read_to_string(&mut json).await?;
-        let obj = serde_json::from_str(&json)?;
-        Ok(obj)
+    fn get_object(&self, oid: &ObjectId) -> Result<ObjectDao> {
+        self.load(self.object_metadata_path(oid))
     }
 
-    async fn put_object(&self, obj: Object) -> Result<Object> {
+    fn put_object(&self, obj: ObjectDao) -> Result<ObjectDao> {
         let oid = &obj.id;
 
         let path = self.object_metadata_path(oid);
-        let mut file = fs::File::create_new(path).await?;
-        let json = serde_json::to_string(&obj)?;
-        file.write_all(json.as_bytes()).await?;
+        let file = fs::File::create_new(path)?;
+        self.save(file, &obj)?;
 
-        let mut sess = self.load_session().await?;
-        sess.objects.push(obj.clone());
-        sess.objects.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
-        self.save_session(&sess).await?;
+        let mut sess = self.load_session()?;
+        sess.add_object(obj.clone());
+        self.save_session(&sess)?;
 
         Ok(obj)
     }
 
-    async fn load_session(&self) -> Result<Session> {
+    fn load_session(&self) -> Result<SessionDao> {
         let path = self.session_file_path();
-        let mut file = fs::File::open(path).await?;
-        let mut json = String::new();
-        file.read_to_string(&mut json).await?;
-        let sess = serde_json::from_str(&json)?;
-        Ok(sess)
+        self.load(path)
     }
 
-    async fn save_session(&self, sess: &Session) -> Result<()> {
-        let json = serde_json::to_string(sess)?;
+    fn save_session(&self, sess: &SessionDao) -> Result<()> {
         let path = self.session_file_path();
-        let mut file = fs::File::create(path).await?;
-        file.write_all(json.as_bytes()).await?;
-        Ok(())
+        let file = fs::File::create(path)?;
+        self.save(file, sess)
     }
 }
 
 impl ObjectRepository for ObjectFsRepository {
-    async fn put(&self, upload: Upload) -> Result<Object> {
-        let obj: Object = upload.try_into()?;
-        self.put_object(obj).await
+    async fn list(&self) -> Result<Vec<ObjectDao>> {
+        let session = self.load_session()?;
+        Ok(session.objects.into())
     }
 
-    async fn upload<R>(&self, upload: Upload, mut reader: R) -> Result<Object>
+    async fn get(&self, oid: &ObjectId) -> Result<ObjectDao> {
+        self.get_object(oid)
+    }
+
+    async fn put(&self, upload: Upload) -> Result<ObjectDao> {
+        let obj: ObjectDao = upload.try_into()?;
+        self.put_object(obj)
+    }
+
+    async fn upload<R>(&self, upload: Upload, mut reader: R) -> Result<ObjectDao>
     where
         R: AsyncRead + Send + Unpin,
     {
-        let obj: Object = upload.try_into()?;
+        let obj: ObjectDao = upload.try_into()?;
         {
             let path = self.object_file_path(&obj.id);
-            let mut file = fs::File::create_new(path).await?;
-            copy(&mut reader, &mut file).await?;
+            let mut file = tokio::fs::File::create_new(path).await?;
+            tokio::io::copy(&mut reader, &mut file).await?;
         }
-        self.put_object(obj).await
-    }
-
-    async fn get(&self, oid: &ObjectId) -> Result<Object> {
-        Ok(self.get_object(oid).await?)
+        self.put_object(obj)
     }
 
     async fn download(
@@ -112,32 +109,39 @@ impl ObjectRepository for ObjectFsRepository {
         oid: &ObjectId,
         name: &str,
     ) -> Result<Box<dyn AsyncRead + Unpin + Send + Sync>> {
-        let obj = self.get_object(oid).await?;
+        let obj = self.get_object(oid)?;
         if obj.get_file_name().filter(|s| s == name).is_none() {
             let err = IoError::from(ErrorKind::NotFound);
             return Err(Box::new(err));
         }
         let path = self.object_file_path(oid);
-        let file = fs::File::open(path).await?;
+        let file = tokio::fs::File::open(path).await?;
         Ok(Box::new(file))
     }
 
     async fn delete(&self, oid: &ObjectId) -> Result<()> {
         let path = self.object_file_path(oid);
-        if let Err(e) = fs::remove_file(path).await {
+        if let Err(e) = fs::remove_file(path) {
             if e.kind() != ErrorKind::NotFound {
                 return Err(Box::new(e));
             }
         }
-        fs::remove_file(self.object_metadata_path(oid)).await?;
+        fs::remove_file(self.object_metadata_path(oid))?;
 
-        let mut sess = self.load_session().await?;
-        sess.objects = sess.objects.into_iter().filter(|o| &o.id != oid).collect();
-        self.save_session(&sess).await?;
+        let mut sess = self.load_session()?;
+        sess.remove_object(oid);
+        self.save_session(&sess)?;
 
         Ok(())
     }
+
+    async fn auth(&self, auth_key: &[u8]) -> Result<bool> {
+        self.check_auth_key(self.session_auth_key_path(), auth_key)
+    }
 }
+
+impl BaseFsRepository for ObjectFsRepository {}
+impl AuthorizedRepository for ObjectFsRepository {}
 
 #[cfg(test)]
 mod tests {
@@ -152,11 +156,12 @@ mod tests {
     async fn put_and_get_object() -> Result<()> {
         let tmpdir = TempDir::new()?;
         let dir = tmpdir.path();
-        let sid = SessionFsRepository::new(dir).create().await?.id;
+        let sid = SessionFsRepository::new(dir).create(None).await?.id;
         let repo = ObjectFsRepository::new(dir.join(sid.to_string()));
         let upload = Upload {
             mime: "text/plain".to_owned(),
             content: Value::Null,
+            crypto: None,
         };
         let oid = repo.put(upload).await?.id;
         let obj = repo.get(&oid).await?;

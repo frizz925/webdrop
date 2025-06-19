@@ -11,11 +11,15 @@ pub mod repositories;
 pub mod services;
 pub mod utils;
 
-pub type ConcreteServiceRepository = SessionFsRepository;
-pub type ConcreteSessionService = SessionService<ConcreteServiceRepository>;
+pub type ConcreteSessionRepository = SessionFsRepository;
+pub type ConcreteSessionService = SessionService<ConcreteSessionRepository>;
 
 pub type ConcreteObjectRepository = ObjectFsRepository;
-pub type ConcreteObjectService = ObjectService<ConcreteObjectRepository>;
+pub type ConcreteObjectService = ObjectService<ConcreteObjectRepository, ConcreteSessionRepository>;
 
-pub(crate) type WebSocketServiceFactory = fn(&SessionId) -> Arc<WebSocketService>;
+pub type ConcreteWebSocketService = WebSocketService<ConcreteSessionRepository>;
+
+pub(crate) type WebSocketServiceFactory = fn(&SessionId) -> Arc<ConcreteWebSocketService>;
 pub(crate) type ObjectServiceFactory = fn(&SessionId) -> Arc<ConcreteObjectService>;
+
+pub const STORAGE_DIR: &str = "storage";

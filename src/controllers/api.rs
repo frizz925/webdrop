@@ -2,17 +2,20 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     routing::{get, head, post},
     Json, Router,
 };
 use tracing::{event, Level};
 
 use crate::{
+    controllers::AuthKeyExtractor,
     models::{
-        object::{Object, ObjectId, Upload},
-        session::{Session, SessionId},
+        object::{ObjectDao, ObjectId, Upload},
+        session::{CreateSession, SessionDto, SessionId},
     },
+    repositories::session::SessionRepository,
+    services::session::{SessionError, SessionService},
     ConcreteSessionService, ObjectServiceFactory,
 };
 
@@ -32,15 +35,17 @@ impl ApiController {
         let state = Arc::new(self);
         Router::new()
             .route("/session", post(create_session))
+            .route("/session/encrypted", post(create_session_encrypted))
             .route(
                 "/session/{sid}",
-                head(head_session)
-                    .get(get_session)
-                    .delete(delete_session)
-                    .post(create_object),
+                head(head_session).get(get_session).delete(delete_session),
             )
             .route(
-                "/session/{sid}/{oid}",
+                "/session/{sid}/objects",
+                get(list_objects).post(create_object),
+            )
+            .route(
+                "/session/{sid}/objects/{oid}",
                 get(get_object).delete(delete_object),
             )
             .with_state(state)
@@ -49,8 +54,18 @@ impl ApiController {
 
 async fn create_session(
     State(controller): State<Arc<ApiController>>,
-) -> Result<Json<Session>, StatusCode> {
-    normalize_json_result("create session", controller.session.create().await)
+) -> Result<Json<SessionDto>, StatusCode> {
+    normalize_json_result("create session", controller.session.create(None).await)
+}
+
+async fn create_session_encrypted(
+    State(controller): State<Arc<ApiController>>,
+    Json(request): Json<CreateSession>,
+) -> Result<Json<SessionDto>, StatusCode> {
+    normalize_json_result(
+        "create session encrypted",
+        controller.session.create(Some(request)).await,
+    )
 }
 
 async fn head_session(
@@ -72,16 +87,18 @@ async fn head_session(
 async fn get_session(
     State(controller): State<Arc<ApiController>>,
     Path(sid): Path<SessionId>,
-) -> Result<Json<Session>, StatusCode> {
+) -> Result<Json<SessionDto>, StatusCode> {
     normalize_json_result("get session", controller.session.get(&sid).await)
 }
 
 async fn delete_session(
     State(controller): State<Arc<ApiController>>,
     Path(sid): Path<SessionId>,
+    headers: HeaderMap,
 ) -> Result<StatusCode, StatusCode> {
+    check_auth_key(&controller.session, &sid, &headers).await?;
     normalize_result(
-        "get session",
+        "delete session",
         controller
             .session
             .delete(&sid)
@@ -90,32 +107,64 @@ async fn delete_session(
     )
 }
 
-async fn create_object(
+async fn list_objects(
     State(controller): State<Arc<ApiController>>,
     Path(sid): Path<SessionId>,
-    Json(upload): Json<Upload>,
-) -> Result<Json<Object>, StatusCode> {
+    headers: HeaderMap,
+) -> Result<Json<Vec<ObjectDao>>, StatusCode> {
+    check_auth_key(&controller.session, &sid, &headers).await?;
     let service = (controller.object)(&sid);
-    normalize_json_result("create object", service.put(upload).await)
+    normalize_json_result("list objects", service.list().await)
 }
 
 async fn get_object(
     State(controller): State<Arc<ApiController>>,
     Path((sid, oid)): Path<(SessionId, ObjectId)>,
-) -> Result<Json<Object>, StatusCode> {
+    headers: HeaderMap,
+) -> Result<Json<ObjectDao>, StatusCode> {
+    check_auth_key(&controller.session, &sid, &headers).await?;
     let service = (controller.object)(&sid);
     normalize_json_result("get object", service.get(&oid).await)
+}
+
+async fn create_object(
+    State(controller): State<Arc<ApiController>>,
+    Path(sid): Path<SessionId>,
+    headers: HeaderMap,
+    Json(upload): Json<Upload>,
+) -> Result<Json<ObjectDao>, StatusCode> {
+    check_auth_key(&controller.session, &sid, &headers).await?;
+    let service = (controller.object)(&sid);
+    normalize_json_result("create object", service.put(upload).await)
 }
 
 async fn delete_object(
     State(controller): State<Arc<ApiController>>,
     Path((sid, oid)): Path<(SessionId, ObjectId)>,
+    headers: HeaderMap,
 ) -> Result<StatusCode, StatusCode> {
+    check_auth_key(&controller.session, &sid, &headers).await?;
     let service = (controller.object)(&sid);
     normalize_result(
         "delete object",
         service.delete(&oid).await.map(|_| StatusCode::NO_CONTENT),
     )
+}
+
+async fn check_auth_key<R: SessionRepository>(
+    service: &Arc<SessionService<R>>,
+    sid: &SessionId,
+    headers: &HeaderMap,
+) -> Result<(), StatusCode> {
+    let auth_key = headers.extract_auth_key()?;
+    service.auth(sid, &auth_key).await.map_err(|err| match err {
+        SessionError::NotFound => StatusCode::NOT_FOUND,
+        SessionError::AuthFail => StatusCode::UNAUTHORIZED,
+        SessionError::Other(e) => {
+            event!(Level::ERROR, "Authentication error: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+    })
 }
 
 fn normalize_result<T, E: StatusCodeError>(

@@ -36,14 +36,22 @@ impl FileContent {
 impl Content for FileContent {}
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct Object {
+pub struct ObjectDao {
     pub id: ObjectId,
     pub mime: String,
     pub timestamp: DateTime<Utc>,
     pub content: Value,
 }
 
-impl Object {
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ObjectDto {
+    pub id: ObjectId,
+    pub mime: String,
+    pub timestamp: DateTime<Utc>,
+    pub content: Value,
+}
+
+impl ObjectDao {
     pub fn get_file_name(&self) -> Option<String> {
         let json = self.content.to_owned();
         if let Ok(content) = serde_json::from_value::<FileContent>(json) {
@@ -59,6 +67,7 @@ impl Object {
 pub struct Upload {
     pub mime: String,
     pub content: Value,
+    pub crypto: Option<ObjectCryptoDto>,
 }
 
 impl Upload {
@@ -66,19 +75,39 @@ impl Upload {
         Self {
             mime,
             content: serde_json::to_value(content).unwrap(),
+            crypto: None,
         }
     }
 }
 
-impl TryInto<Object> for Upload {
+impl TryInto<ObjectDao> for Upload {
     type Error = SystemTimeError;
 
-    fn try_into(self) -> Result<Object, Self::Error> {
-        Ok(Object {
+    fn try_into(self) -> Result<ObjectDao, Self::Error> {
+        Ok(ObjectDao {
             id: ObjectId::generate()?,
             mime: self.mime,
             timestamp: Utc::now(),
             content: self.content,
         })
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ObjectCryptoDao {
+    subkey: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ObjectCryptoDto {
+    subkey: String,
+}
+
+impl Into<ObjectCryptoDao> for ObjectCryptoDto {
+    fn into(self) -> ObjectCryptoDao {
+        ObjectCryptoDao {
+            subkey: self.subkey,
+        }
     }
 }

@@ -5,7 +5,7 @@ import type { PageLoad } from './$types';
 export const load: PageLoad = async ({ fetch, params }) => {
 	const { sid } = params;
 	try {
-		const session = await getSession(fetch, sid);
+		const session = await getSession(sid, fetch);
 		return { session };
 	} catch (err) {
 		const res = err as Response;

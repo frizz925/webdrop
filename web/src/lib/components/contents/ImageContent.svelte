@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { type FileContent } from '$lib/models';
-	import { getFileUrl } from '$lib/utils';
+	import { getFileURL } from '$lib/utils';
 	import { faImage } from '@fortawesome/free-solid-svg-icons';
 
 	import type { Menu } from '../DropdownMenu.svelte';
@@ -9,7 +9,7 @@
 	import type { Props } from './MediaContent';
 
 	const { sid, object: obj, content, onDelete }: Props = $props();
-	const src = getFileUrl(sid, obj, content);
+	const src = getFileURL(sid, obj, content);
 	let img: HTMLImageElement;
 
 	const copyImage = async () => {
