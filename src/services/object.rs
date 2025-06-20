@@ -11,9 +11,9 @@ use tokio::io::AsyncRead;
 use crate::{
     models::{
         event::{Event, EventName},
-        object::{Object, ObjectId, Upload},
+        object::{ObjectDao, ObjectId, Upload},
     },
-    repositories::object::ObjectRepository,
+    repositories::{object::ObjectRepository, session::SessionRepository},
 };
 
 use super::websocket::WebSocketService;
@@ -40,20 +40,26 @@ impl StdError for ObjectError {}
 
 pub type Result<T> = StdResult<T, ObjectError>;
 
-pub struct ObjectService<S> {
-    repository: Arc<S>,
+pub struct ObjectService<O, S> {
+    repository: Arc<O>,
     websocket: Arc<WebSocketService<S>>,
 }
 
-impl<S: ObjectRepository> ObjectService<S> {
-    pub fn new(repository: Arc<S>, websocket: Arc<WebSocketService<S>>) -> Self {
+impl<O, S> ObjectService<O, S> {
+    pub fn new(repository: Arc<O>, websocket: Arc<WebSocketService<S>>) -> Self {
         Self {
             repository,
             websocket,
         }
     }
+}
 
-    pub async fn get(&self, oid: &ObjectId) -> Result<Object> {
+impl<O: ObjectRepository, S> ObjectService<O, S> {
+    pub async fn list(&self) -> Result<Vec<ObjectDao>> {
+        normalize_result(self.repository.list().await)
+    }
+
+    pub async fn get(&self, oid: &ObjectId) -> Result<ObjectDao> {
         normalize_result(self.repository.get(oid).await)
     }
 
@@ -65,7 +71,22 @@ impl<S: ObjectRepository> ObjectService<S> {
         normalize_result(self.repository.download(oid, name).await)
     }
 
-    pub async fn put(&self, upload: Upload) -> Result<Object> {
+    pub async fn auth(&self, auth_key: &[u8]) -> Result<()> {
+        if self
+            .repository
+            .auth(auth_key)
+            .await
+            .map_err(|e| ObjectError::Other(e))?
+        {
+            Ok(())
+        } else {
+            Err(ObjectError::AuthFail)
+        }
+    }
+}
+
+impl<O: ObjectRepository, S: SessionRepository> ObjectService<O, S> {
+    pub async fn put(&self, upload: Upload) -> Result<ObjectDao> {
         normalize_result(
             self.repository
                 .put(upload)
@@ -74,7 +95,7 @@ impl<S: ObjectRepository> ObjectService<S> {
         )
     }
 
-    pub async fn upload<R>(&self, upload: Upload, reader: R) -> Result<Object>
+    pub async fn upload<R>(&self, upload: Upload, reader: R) -> Result<ObjectDao>
     where
         R: AsyncRead + Unpin + Send + Sync,
     {
@@ -93,20 +114,7 @@ impl<S: ObjectRepository> ObjectService<S> {
         }))
     }
 
-    pub async fn auth(&self, auth_key: &str) -> Result<()> {
-        if self
-            .repository
-            .auth(auth_key)
-            .await
-            .map_err(|e| ObjectError::Other(e))?
-        {
-            Ok(())
-        } else {
-            Err(ObjectError::AuthFail)
-        }
-    }
-
-    fn publish_object_created(&self, obj: Object) -> Object {
+    fn publish_object_created(&self, obj: ObjectDao) -> ObjectDao {
         let event = Event::new(EventName::ObjectCreated, obj.id);
         self.websocket.publish(event);
         obj

@@ -1,3 +1,4 @@
+pub mod crypto;
 pub mod event;
 pub mod object;
 pub mod session;

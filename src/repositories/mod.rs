@@ -1,6 +1,6 @@
+pub mod fs;
 pub mod object;
 pub mod session;
-pub mod fs;
 
 use std::{error::Error, result::Result as StdResult};
 

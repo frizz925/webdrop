@@ -1,8 +1,16 @@
 <script lang="ts">
+	import { createAuthKey, createMasterKey, encodeBuffer, encodeKDFParams } from '$lib/crypto';
 	import type { Session } from '$lib/models';
-	import { sluggify } from '$lib/utils';
+	import { jsonRequest, sluggify } from '$lib/utils';
+	import { onMount } from 'svelte';
 
-	let { sid, message, creating } = $state({ sid: '', message: '', creating: false });
+	let { sid, message, creating, encryption, subtleAvailable } = $state({
+		sid: '',
+		message: '',
+		creating: false,
+		encryption: false,
+		subtleAvailable: false
+	});
 
 	const updateInput = (evt: Event) => {
 		const el = evt.target as HTMLInputElement;
@@ -27,26 +35,61 @@
 		}
 	};
 
+	const createEncryptedSession = async () => {
+		const crypto = window.crypto;
+
+		const password = crypto.getRandomValues(new Uint8Array(24));
+		const { masterKey, kdfParams } = await createMasterKey(password);
+		const authKey = await createAuthKey(masterKey);
+
+		return {
+			password: encodeBuffer(password),
+			response: await fetch(
+				'/api/session/encrypted',
+				jsonRequest('POST', {
+					authKey: encodeBuffer(authKey),
+					kdfParams: encodeKDFParams(kdfParams)
+				})
+			)
+		};
+	};
+
 	const createSession = async () => {
 		message = '';
 		creating = true;
 
-		const res = await fetch(`/api/session`, { method: 'POST' });
-		if (res.status >= 400) {
+		let res, password;
+		if (encryption) {
+			const result = await createEncryptedSession();
+			res = result.response;
+			password = result.password;
+		} else res = await fetch('/api/session', { method: 'POST' });
+
+		if (!res.ok) {
 			message = 'Unknown error';
 			creating = false;
 			return;
 		}
 
 		const sess: Session = await res.json();
+		if (password) window.localStorage.setItem(`${sess.id}`, password);
 		window.location.assign(`/session/${sess.id}`);
 	};
+
+	onMount(() => {
+		subtleAvailable = 'subtle' in window.crypto;
+		encryption = subtleAvailable;
+	});
 </script>
 
 <div class="m-auto flex h-screen max-w-xl flex-col items-stretch justify-center">
-	<div class="bg-color flex flex-col items-center">
+	<div class="flex flex-col items-center">
 		<h1 class="text-4xl font-bold">WebDrop</h1>
-		<h2 class="mt-2 text-xl">Easily share files over the web</h2>
+		{#if subtleAvailable}
+			<h2 class="mt-2 text-xl">Easily share files over the web, securely</h2>
+		{:else}
+			<h2 class="mt-2 text-xl">Easily share files over the web</h2>
+		{/if}
 		<form class="mt-4 flex" onsubmit={joinSession}>
 			<input
 				type="text"
@@ -61,14 +104,22 @@
 				value="Join"
 			/>
 		</form>
-		<div class="mt-4">
-			<button
-				class="btn cursor-pointer rounded-full px-4 py-2"
-				disabled={creating}
-				onclick={createSession}
-			>
-				New session
-			</button>
+		<button
+			class="btn mt-4 block cursor-pointer rounded-full px-4 py-2"
+			disabled={creating}
+			onclick={createSession}
+		>
+			New session
+		</button>
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="mt-4 flex cursor-pointer items-center justify-start"
+			class:hidden={!subtleAvailable}
+			onclick={() => (encryption = !encryption)}
+		>
+			<input type="checkbox" bind:checked={encryption} />
+			<span class="ml-2">End-to-end encryption</span>
 		</div>
 		<div class="mt-4">{message}</div>
 	</div>

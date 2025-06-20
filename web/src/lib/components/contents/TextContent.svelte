@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { TextContent } from '$lib/models';
-	import { faClipboard } from '@fortawesome/free-solid-svg-icons';
+	import { faCopy } from '@fortawesome/free-solid-svg-icons';
 
 	import { copyToClipboard } from '../utils';
 	import Content, { type PartialProps } from './Content.svelte';
@@ -15,19 +15,19 @@
 	let { secretShown } = $state({ secretShown: false });
 	const copyMenu = {
 		label: 'Copy Text',
-		icon: faClipboard,
+		icon: faCopy,
 		onClick: () => copyToClipboard(content.data, 'Text')
 	};
 </script>
 
 <Content {object} {copyMenu} {onDelete}>
-	<div class="overflow-hidden px-4 pt-4 wrap-anywhere whitespace-pre-wrap">
+	<div class="wrap-anywhere overflow-hidden whitespace-pre-wrap px-4 pt-4">
 		{#if isSecret}
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<span
 				class={[
-					'cursor-pointer bg-gray-500 select-none',
+					'cursor-pointer select-none bg-gray-500',
 					secretShown ? 'text-gray-50' : 'text-transparent'
 				]}
 				onclick={() => (secretShown = !secretShown)}

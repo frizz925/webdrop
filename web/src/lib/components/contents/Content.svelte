@@ -12,11 +12,11 @@
 		object: FileObject;
 		children?: Snippet;
 		copyMenu?: Menu;
-		fileUrl?: string;
+		fileURL?: string;
 		onDelete?: (oid: ObjectID) => void;
 	}
 
-	const { object: obj, children, copyMenu, fileUrl, onDelete }: PartialProps = $props();
+	const { object: obj, children, copyMenu, fileURL: fileURL, onDelete }: PartialProps = $props();
 	const { id, timestamp, mime } = obj;
 	const datetime = format(timestamp, 'yyyy-MM-dd HH:mm:ss');
 	const isTextContent = mime.startsWith('text/');
@@ -37,9 +37,9 @@
 	};
 
 	const copyLink = () => {
-		if (!fileUrl) return;
+		if (!fileURL) return;
 		const url = new URL(window.location.toString());
-		url.pathname = fileUrl;
+		url.pathname = fileURL;
 		copyToClipboard(url.toString(), 'Object URL');
 	};
 
@@ -49,7 +49,7 @@
 			label: 'Copy Object URL',
 			icon: faLink,
 			onClick: copyLink,
-			hidden: isTextContent || !fileUrl
+			hidden: isTextContent || !fileURL
 		},
 		{
 			label: 'Delete Object',
@@ -69,7 +69,7 @@
 
 <div class="border-b">
 	{@render children?.()}
-	<div class="text-sub mb-2 flex items-center justify-start pr-2 pl-4 text-sm">
+	<div class="text-sub mb-2 flex items-center justify-start pl-4 pr-2 text-sm">
 		<div class="grow">
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div

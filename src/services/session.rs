@@ -3,12 +3,13 @@ use std::{
     fmt::Display,
     io::{Error as IoError, ErrorKind},
     result::Result as StdResult,
+    sync::Arc,
 };
 
 use crate::{
     models::{
         event::EventName,
-        session::{CreateSession, Session, SessionId},
+        session::{CreateSession, SessionDto, SessionId},
     },
     registries::{OBJECT_SERVICES, WEBSOCKET_SERVICES},
     repositories::session::SessionRepository,
@@ -38,23 +39,23 @@ impl StdError for SessionError {}
 pub type Result<T> = StdResult<T, SessionError>;
 
 pub struct SessionService<R> {
-    repository: R,
+    repository: Arc<R>,
     websocket: WebSocketServiceFactory,
 }
 
 impl<R: SessionRepository> SessionService<R> {
-    pub fn new(repository: R, websocket: WebSocketServiceFactory) -> Self {
+    pub fn new(repository: Arc<R>, websocket: WebSocketServiceFactory) -> Self {
         Self {
             repository,
             websocket,
         }
     }
 
-    pub async fn create(&self, req: CreateSession) -> Result<Session> {
+    pub async fn create(&self, req: Option<CreateSession>) -> Result<SessionDto> {
         normalize_result(self.repository.create(req).await)
     }
 
-    pub async fn get(&self, sid: &SessionId) -> Result<Session> {
+    pub async fn get(&self, sid: &SessionId) -> Result<SessionDto> {
         normalize_result(self.repository.get(sid).await)
     }
 
@@ -71,7 +72,7 @@ impl<R: SessionRepository> SessionService<R> {
         }))
     }
 
-    pub async fn auth(&self, sid: &SessionId, auth_key: &str) -> Result<()> {
+    pub async fn auth(&self, sid: &SessionId, auth_key: &[u8]) -> Result<()> {
         if self
             .repository
             .auth(sid, auth_key)

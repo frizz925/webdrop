@@ -3,8 +3,9 @@ use std::{error::Error, sync::Arc};
 use axum::{
     extract::{
         ws::{Message, WebSocket},
-        Path, State, WebSocketUpgrade,
+        Path, Query, State, WebSocketUpgrade,
     },
+    http::StatusCode,
     response::IntoResponse,
     routing::any,
     Router,
@@ -13,10 +14,13 @@ use futures::SinkExt;
 use tracing::{event, Level};
 
 use crate::{
+    controllers::{AuthKeyExtractor, AuthParams},
     models::{
         event::{Event, EventName},
         session::SessionId,
     },
+    repositories::session::SessionRepository,
+    services::websocket::{WebSocketError, WebSocketService},
     utils::sync::Subscriber,
     WebSocketServiceFactory,
 };
@@ -41,15 +45,18 @@ impl WebSocketController {
 async fn websocket_handler(
     State(controller): State<Arc<WebSocketController>>,
     Path(sid): Path<SessionId>,
+    Query(params): Query<AuthParams>,
     ws: WebSocketUpgrade,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, StatusCode> {
     let service = (controller.factory)(&sid);
+    check_auth_key(&service, &sid, &params).await?;
     let subscriber = service.subscribe();
-    ws.on_upgrade(move |socket| async {
+    let res = ws.on_upgrade(move |socket| async {
         if let Err(e) = handle_socket(socket, subscriber).await {
             event!(Level::ERROR, "WebSocket error: {e}")
         }
-    })
+    });
+    Ok(res)
 }
 
 async fn handle_socket(
@@ -72,4 +79,19 @@ async fn handle_socket(
     }
     socket.close().await?;
     Ok(())
+}
+
+async fn check_auth_key<R: SessionRepository>(
+    service: &Arc<WebSocketService<R>>,
+    sid: &SessionId,
+    params: &AuthParams,
+) -> Result<(), StatusCode> {
+    let auth_key = params.extract_auth_key()?;
+    service.auth(sid, &auth_key).await.map_err(|err| match err {
+        WebSocketError::AuthFail => StatusCode::UNAUTHORIZED,
+        WebSocketError::Other(e) => {
+            event!(Level::ERROR, "Authentication error: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+    })
 }

@@ -25,5 +25,8 @@ export const jsonRequest = <T>(method: string, data: T) =>
 		body: JSON.stringify(data)
 	}) as RequestInit;
 
-export const getFileUrl = (sid: SessionID, obj: FileObject, content: FileContent) =>
+export const getFileURL = (sid: SessionID, obj: FileObject, content: FileContent) =>
 	`/objects/${sid}/${obj.id}/${content.name}`;
+
+export const base64URL = (b64: string) => b64.replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+export const unbase64URL = (b64: string) => b64.replaceAll('-', '+').replaceAll('_', '/');

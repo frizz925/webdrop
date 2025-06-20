@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { FileContent, LinkContent, SessionID } from '$lib/models';
-	import { getFileUrl } from '$lib/utils';
+	import { getFileURL } from '$lib/utils';
 	import { faDownload, faLink } from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
@@ -28,7 +28,7 @@
 	const getLinkFromContent = () => {
 		if (content.kind === 'link') return (content as LinkContent).url;
 		else if (content.kind === 'file') {
-			if (sid) return getFileUrl(sid, obj, content as FileContent);
+			if (sid) return getFileURL(sid, obj, content as FileContent);
 			else throw new Error("Can't get file URL without session ID");
 		}
 		throw new Error(`Can't get link for content kind ${content.kind}`);
@@ -44,7 +44,7 @@
 	};
 </script>
 
-<Content object={obj} {copyMenu} fileUrl={link} {onDelete}>
+<Content object={obj} {copyMenu} fileURL={link} {onDelete}>
 	<div class="flex items-center justify-start overflow-hidden px-4 pt-4">
 		<div class="text-sm">
 			<FontAwesomeIcon icon={download ? faDownload : faLink} />

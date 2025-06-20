@@ -3,8 +3,8 @@ use std::{error::Error, fmt::Display, result::Result as StdResult, sync::Arc};
 use futures::TryFutureExt;
 
 use crate::{
-    models::event::Event,
-    repositories::object::ObjectRepository,
+    models::{event::Event, session::SessionId},
+    repositories::session::SessionRepository,
     utils::sync::{PubSub, Subscriber},
 };
 
@@ -14,11 +14,18 @@ pub struct WebSocketService<R> {
 }
 
 #[derive(Debug)]
-pub struct WebSocketError(Box<dyn Error>);
+pub enum WebSocketError {
+    AuthFail,
+    Other(Box<dyn Error>),
+}
 
 impl Display for WebSocketError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
+        let s = match self {
+            Self::AuthFail => "Authentication failed".to_owned(),
+            Self::Other(e) => e.to_string(),
+        };
+        f.write_str(&s)
     }
 }
 
@@ -26,7 +33,7 @@ impl Error for WebSocketError {}
 
 pub type Result<T> = StdResult<T, WebSocketError>;
 
-impl<R: ObjectRepository> WebSocketService<R> {
+impl<R: SessionRepository> WebSocketService<R> {
     pub fn new(backlog: usize, repository: Arc<R>) -> Self {
         Self {
             pubsub: PubSub::new(backlog),
@@ -42,10 +49,16 @@ impl<R: ObjectRepository> WebSocketService<R> {
         self.pubsub.publish(&event);
     }
 
-    pub async fn auth(&self, auth_key: &str) -> Result<bool> {
-        self.repository
-            .auth(auth_key)
-            .map_err(|e| WebSocketError(e))
-            .await
+    pub async fn auth(&self, sid: &SessionId, auth_key: &[u8]) -> Result<()> {
+        if self
+            .repository
+            .auth(sid, auth_key)
+            .map_err(|e| WebSocketError::Other(e))
+            .await?
+        {
+            Ok(())
+        } else {
+            Err(WebSocketError::AuthFail)
+        }
     }
 }
