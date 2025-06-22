@@ -19,6 +19,7 @@ export interface LinkContent extends Content {
 
 export interface FileContent extends Content {
 	name: string;
+	mime: string;
 }
 
 export interface EncryptedContent extends Content {
@@ -33,20 +34,17 @@ export interface ContentCipherParams {
 }
 
 export interface Upload<C extends Content = Content> {
-	mime: string;
 	content: C;
 }
 
 export interface FileObjectDto<C extends Content = Content> {
 	id: ObjectID;
-	mime: string;
 	timestamp: string;
 	content: C;
 }
 
 export interface FileObject<C extends Content = Content> {
 	id: ObjectID;
-	mime: string;
 	timestamp: Date;
 	content: C;
 }
@@ -75,7 +73,6 @@ export interface SessionAuthParams {
 export const objectFromDto = <C extends Content>(dto: FileObjectDto<C>) => {
 	return {
 		id: dto.id,
-		mime: dto.mime,
 		content: dto.content,
 		timestamp: parseISO(dto.timestamp)
 	} as FileObject<C>;

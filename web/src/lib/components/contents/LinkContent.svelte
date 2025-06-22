@@ -40,7 +40,7 @@
 		label: 'Copy URL',
 		icon: faLink,
 		onClick: () => copyToClipboard(link, 'URL'),
-		hidden: !obj.mime.startsWith('text/')
+		hidden: obj.content.kind === 'file'
 	};
 </script>
 
