@@ -157,14 +157,21 @@ async fn check_auth_key<R: SessionRepository>(
     headers: &HeaderMap,
 ) -> Result<(), StatusCode> {
     let auth_key = headers.extract_auth_key()?;
-    service.auth(sid, &auth_key).await.map_err(|err| match err {
-        SessionError::NotFound => StatusCode::NOT_FOUND,
-        SessionError::AuthFail => StatusCode::UNAUTHORIZED,
-        SessionError::Other(e) => {
-            event!(Level::ERROR, "Authentication error: {e}");
-            StatusCode::INTERNAL_SERVER_ERROR
-        }
-    })
+    if service
+        .auth(sid, &auth_key)
+        .await
+        .map_err(|err| match err {
+            SessionError::NotFound => StatusCode::NOT_FOUND,
+            SessionError::Other(e) => {
+                event!(Level::ERROR, "Authentication error: {e}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        })?
+    {
+        Ok(())
+    } else {
+        Err(StatusCode::UNAUTHORIZED)
+    }
 }
 
 fn normalize_result<T, E: StatusCodeError>(

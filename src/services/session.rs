@@ -19,7 +19,6 @@ use crate::{
 #[derive(Debug)]
 pub enum SessionError {
     NotFound,
-    AuthFail,
     Other(Box<dyn StdError>),
 }
 
@@ -27,7 +26,6 @@ impl Display for SessionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::NotFound => "Session not found".to_owned(),
-            Self::AuthFail => "Authentication failed".to_owned(),
             Self::Other(e) => e.to_string(),
         };
         f.write_str(&s)
@@ -72,17 +70,11 @@ impl<R: SessionRepository> SessionService<R> {
         }))
     }
 
-    pub async fn auth(&self, sid: &SessionId, auth_key: &[u8]) -> Result<()> {
-        if self
-            .repository
+    pub async fn auth(&self, sid: &SessionId, auth_key: &[u8]) -> Result<bool> {
+        self.repository
             .auth(sid, auth_key)
             .await
-            .map_err(|e| SessionError::Other(e))?
-        {
-            Ok(())
-        } else {
-            Err(SessionError::AuthFail)
-        }
+            .map_err(|e| SessionError::Other(e))
     }
 }
 

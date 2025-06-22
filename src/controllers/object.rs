@@ -6,7 +6,7 @@ use std::{
 
 use axum::{
     body::Body,
-    extract::{multipart::MultipartError, DefaultBodyLimit, Multipart, Path, State},
+    extract::{multipart::MultipartError, DefaultBodyLimit, Multipart, Path, Query, State},
     http::{HeaderMap, StatusCode},
     routing::{get, post},
     Json, Router,
@@ -16,7 +16,7 @@ use tokio_util::io::{ReaderStream, StreamReader};
 use tracing::{event, Level};
 
 use crate::{
-    controllers::AuthKeyExtractor,
+    controllers::{AuthKeyExtractor, AuthParams},
     models::{
         object::{FileContent, ObjectDao, ObjectId, Upload},
         session::SessionId,
@@ -48,17 +48,19 @@ impl ObjectController {
 async fn download_handler(
     State(controller): State<Arc<ObjectController>>,
     Path((sid, oid, name)): Path<(SessionId, ObjectId, String)>,
-) -> Result<Body, (StatusCode, String)> {
+    Query(params): Query<AuthParams>,
+) -> Result<Body, StatusCode> {
     let service = (controller.factory)(&sid);
+    check_query_auth_key(&service, &params).await?;
     match service.download(&oid, &name).await {
         Ok(reader) => Ok(Body::from_stream(ReaderStream::new(reader))),
-        Err(e) => {
-            let code = match e {
-                ObjectError::NotFound => StatusCode::NOT_FOUND,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            };
-            Err((code, e.to_string()))
-        }
+        Err(err) => match err {
+            ObjectError::Other(e) => {
+                event!(Level::ERROR, "Download erorr: {e}");
+                Err(StatusCode::INTERNAL_SERVER_ERROR)
+            }
+            _ => Err(StatusCode::NOT_FOUND),
+        },
     }
 }
 
@@ -69,7 +71,7 @@ async fn upload_handler(
     multipart: Multipart,
 ) -> Result<Json<ObjectDao>, StatusCode> {
     let service = (controller.factory)(&sid);
-    check_auth_key(&service, &headers).await?;
+    check_header_auth_key(&service, &headers).await?;
     let result = do_upload(service, multipart).await.map_err(|err| {
         if let Some(e) = err.downcast_ref::<MultipartError>() {
             event!(Level::ERROR, "Multipart error: {e}");
@@ -106,17 +108,35 @@ async fn do_upload<O: ObjectRepository, S: SessionRepository>(
     Ok(None)
 }
 
-async fn check_auth_key<O: ObjectRepository, S>(
+async fn check_query_auth_key<O: ObjectRepository, S>(
+    service: &Arc<ObjectService<O, S>>,
+    params: &AuthParams,
+) -> Result<(), StatusCode> {
+    let auth_key = params.extract_auth_key()?;
+    check_auth_key(service, &auth_key).await
+}
+
+async fn check_header_auth_key<O: ObjectRepository, S>(
     service: &Arc<ObjectService<O, S>>,
     headers: &HeaderMap,
 ) -> Result<(), StatusCode> {
     let auth_key = headers.extract_auth_key()?;
-    service.auth(&auth_key).await.map_err(|err| match err {
+    check_auth_key(service, &auth_key).await
+}
+
+async fn check_auth_key<O: ObjectRepository, S>(
+    service: &Arc<ObjectService<O, S>>,
+    auth_key: &[u8],
+) -> Result<(), StatusCode> {
+    if service.auth(auth_key).await.map_err(|err| match err {
         ObjectError::NotFound => StatusCode::NOT_FOUND,
-        ObjectError::AuthFail => StatusCode::UNAUTHORIZED,
         ObjectError::Other(e) => {
             event!(Level::ERROR, "Authentication error: {e}");
             StatusCode::INTERNAL_SERVER_ERROR
         }
-    })
+    })? {
+        Ok(())
+    } else {
+        Err(StatusCode::UNAUTHORIZED)
+    }
 }

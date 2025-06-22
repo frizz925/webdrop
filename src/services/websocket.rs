@@ -1,7 +1,5 @@
 use std::{error::Error, fmt::Display, result::Result as StdResult, sync::Arc};
 
-use futures::TryFutureExt;
-
 use crate::{
     models::{event::Event, session::SessionId},
     repositories::session::SessionRepository,
@@ -15,14 +13,12 @@ pub struct WebSocketService<R> {
 
 #[derive(Debug)]
 pub enum WebSocketError {
-    AuthFail,
     Other(Box<dyn Error>),
 }
 
 impl Display for WebSocketError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            Self::AuthFail => "Authentication failed".to_owned(),
             Self::Other(e) => e.to_string(),
         };
         f.write_str(&s)
@@ -49,16 +45,10 @@ impl<R: SessionRepository> WebSocketService<R> {
         self.pubsub.publish(&event);
     }
 
-    pub async fn auth(&self, sid: &SessionId, auth_key: &[u8]) -> Result<()> {
-        if self
-            .repository
+    pub async fn auth(&self, sid: &SessionId, auth_key: &[u8]) -> Result<bool> {
+        self.repository
             .auth(sid, auth_key)
+            .await
             .map_err(|e| WebSocketError::Other(e))
-            .await?
-        {
-            Ok(())
-        } else {
-            Err(WebSocketError::AuthFail)
-        }
     }
 }
