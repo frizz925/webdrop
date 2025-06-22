@@ -18,7 +18,7 @@ use tracing::{event, Level};
 use crate::{
     controllers::{AuthKeyExtractor, AuthParams},
     models::{
-        object::{FileContent, ObjectDao, ObjectId, Upload},
+        object::{ObjectDao, ObjectId, Upload},
         session::SessionId,
     },
     repositories::{object::ObjectRepository, session::SessionRepository},
@@ -47,12 +47,12 @@ impl ObjectController {
 
 async fn download_handler(
     State(controller): State<Arc<ObjectController>>,
-    Path((sid, oid, name)): Path<(SessionId, ObjectId, String)>,
+    Path((sid, oid, _)): Path<(SessionId, ObjectId, String)>,
     Query(params): Query<AuthParams>,
 ) -> Result<Body, StatusCode> {
     let service = (controller.factory)(&sid);
     check_query_auth_key(&service, &params).await?;
-    match service.download(&oid, &name).await {
+    match service.download(&oid).await {
         Ok(reader) => Ok(Body::from_stream(ReaderStream::new(reader))),
         Err(err) => match err {
             ObjectError::Other(e) => {
@@ -91,18 +91,22 @@ async fn do_upload<O: ObjectRepository, S: SessionRepository>(
     service: Arc<ObjectService<O, S>>,
     mut multipart: Multipart,
 ) -> Result<Option<ObjectDao>, Box<dyn Error>> {
+    let mut opt_upload: Option<Upload> = None;
     while let Some(field) = multipart.next_field().await? {
-        if let (Some(name), Some(filename)) = (field.name(), field.file_name()) {
-            if name != "file" {
-                continue;
+        match field.name().unwrap_or_default() {
+            "meta" => {
+                let content = field.text().await?;
+                let upload = serde_json::from_str(&content)?;
+                opt_upload = Some(upload);
             }
-            let mime = field.content_type().unwrap_or("application/octet-stream");
-            let content = FileContent::new(filename.to_owned());
-            let upload = Upload::new(mime.to_owned(), content);
-            let stream = field.map_err(|err| IoError::new(ErrorKind::Other, err));
-            let reader = StreamReader::new(stream);
-            let obj = service.upload(upload, reader).await?;
-            return Ok(Some(obj));
+            "file" if opt_upload.is_some() => {
+                let upload = opt_upload.unwrap();
+                let stream = field.map_err(|err| IoError::new(ErrorKind::Other, err));
+                let reader = StreamReader::new(stream);
+                let obj = service.upload(upload, reader).await?;
+                return Ok(Some(obj));
+            }
+            _ => continue,
         }
     }
     Ok(None)

@@ -10,31 +10,6 @@ pub type ObjectId = SnowflakeId;
 
 pub struct UnknownKindError;
 
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ContentKind {
-    File,
-}
-
-pub trait Content: Serialize {}
-
-#[derive(Serialize, Deserialize)]
-pub struct FileContent {
-    pub kind: ContentKind,
-    pub name: String,
-}
-
-impl FileContent {
-    pub fn new(name: String) -> Self {
-        Self {
-            kind: ContentKind::File,
-            name,
-        }
-    }
-}
-
-impl Content for FileContent {}
-
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ObjectDao {
     pub id: ObjectId,
@@ -51,32 +26,15 @@ pub struct ObjectDto {
     pub content: Value,
 }
 
-impl ObjectDao {
-    pub fn get_file_name(&self) -> Option<String> {
-        let json = self.content.to_owned();
-        if let Ok(content) = serde_json::from_value::<FileContent>(json) {
-            match content.kind {
-                ContentKind::File => return Some(content.name),
-            }
-        }
-        None
-    }
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct Upload {
     pub mime: String,
     pub content: Value,
-    pub crypto: Option<ObjectCryptoDto>,
 }
 
 impl Upload {
-    pub fn new<C: Content>(mime: String, content: C) -> Self {
-        Self {
-            mime,
-            content: serde_json::to_value(content).unwrap(),
-            crypto: None,
-        }
+    pub fn new(mime: String, content: Value) -> Self {
+        Self { mime, content }
     }
 }
 

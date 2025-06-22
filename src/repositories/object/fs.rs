@@ -1,6 +1,6 @@
 use std::{
     fs,
-    io::{Error as IoError, ErrorKind},
+    io::ErrorKind,
     path::{Path, PathBuf},
 };
 
@@ -104,16 +104,7 @@ impl ObjectRepository for ObjectFsRepository {
         self.put_object(obj)
     }
 
-    async fn download(
-        &self,
-        oid: &ObjectId,
-        name: &str,
-    ) -> Result<Box<dyn AsyncRead + Unpin + Send + Sync>> {
-        let obj = self.get_object(oid)?;
-        if obj.get_file_name().filter(|s| s == name).is_none() {
-            let err = IoError::from(ErrorKind::NotFound);
-            return Err(Box::new(err));
-        }
+    async fn download(&self, oid: &ObjectId) -> Result<Box<dyn AsyncRead + Unpin + Send + Sync>> {
         let path = self.object_file_path(oid);
         let file = tokio::fs::File::open(path).await?;
         Ok(Box::new(file))
@@ -161,7 +152,6 @@ mod tests {
         let upload = Upload {
             mime: "text/plain".to_owned(),
             content: Value::Null,
-            crypto: None,
         };
         let oid = repo.put(upload).await?.id;
         let obj = repo.get(&oid).await?;
