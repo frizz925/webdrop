@@ -19,7 +19,7 @@ export interface LinkContent extends Content {
 
 export interface FileContent extends Content {
 	name: string;
-	mime: string;
+	mime?: string;
 }
 
 export interface EncryptedContent extends Content {
@@ -47,6 +47,7 @@ export interface FileObject<C extends Content = Content> {
 	id: ObjectID;
 	timestamp: Date;
 	content: C;
+	mime?: string;
 }
 
 export interface Session {

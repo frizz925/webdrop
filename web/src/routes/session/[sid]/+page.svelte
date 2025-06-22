@@ -71,8 +71,10 @@
 	let objectIDs = new Set();
 
 	const objectURL = (oid: models.ObjectID) => `/api/session/${sid}/objects/${oid}`;
-	const objectMIME = ({ content }: models.FileObject) =>
-		content.kind === 'file' ? (content as models.FileContent).mime : 'application/octet-stream';
+	const objectMIME = (obj: models.FileObject) =>
+		obj.mime ||
+		(obj.content.kind === 'file' && (obj.content as models.FileContent).mime) ||
+		'application/octet-stream';
 
 	const getURL = () => new URL(window.location.toString());
 	const getSignedURL = () => {
