@@ -9,3 +9,5 @@ export const copyToClipboard = (content: string | Blob, what: string, mime?: str
 	} else navigator.clipboard.writeText(content);
 	toastState.message = `${what} copied`;
 };
+
+export const preventDefault = (evt: Event) => evt.preventDefault();

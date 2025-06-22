@@ -58,6 +58,8 @@
 	const encrypted = !!session.crypto;
 
 	let sessionReady = $state(false);
+	let cryptoFailed = $state(false);
+
 	let sidShown = $state(false);
 	let qrcodeShown = $state(false);
 	let dropdownShown = $state(false);
@@ -186,8 +188,10 @@
 
 	const setupSessionCrypto = async (config: models.SessionCrypto) => {
 		const password = window.localStorage.getItem(sid);
-		if (!password)
+		if (!password) {
+			cryptoFailed = true;
 			throw new Error('Session is encrypted but password was not found in the LocalStorage');
+		}
 
 		const kdfParams = decodeKDFParams(config.kdfParams);
 		const { masterKey: masterKeyRaw } = await createMasterKey(password, kdfParams);
@@ -199,11 +203,17 @@
 	};
 
 	const loadObjects = async () => {
-		objects = await getObjects(sid);
+		try {
+			objects = await getObjects(sid);
+		} catch (res) {
+			cryptoFailed = true;
+			throw res;
+		}
 		objectIDs = new Set(objects.map((o) => o.id));
 		await Promise.all(
 			objects.map(async (obj, idx) => (objects[idx] = await maybeDecryptObject(obj)))
 		);
+		sessionReady = true;
 	};
 
 	const sessionMenuList: () => Menu[] = () => [
@@ -253,7 +263,6 @@
 		if (session.crypto) await setupSessionCrypto(session.crypto);
 		await loadObjects();
 		connectWS();
-		sessionReady = true;
 	});
 </script>
 
@@ -308,8 +317,16 @@
 			/>
 		</div>
 	</div>
-	<div class="border-b p-4" class:hidden={!sessionReady}>
-		<Form {sid} onSubmit={onUpload} />
+	<div class="border-b p-4" class:hidden={!sessionReady && !cryptoFailed}>
+		{#if sessionReady}
+			<Form {sid} onSubmit={onUpload} />
+		{/if}
+		{#if cryptoFailed}
+			<div class="text-red-400">
+				Session is encrypted but you don't have a valid master key. Contents of this session can't
+				be shown.
+			</div>
+		{/if}
 	</div>
 	<div>
 		{#each objects as obj (obj.id)}

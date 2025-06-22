@@ -1,3 +1,4 @@
+import { getCryptoConfig } from './crypto';
 import type { FileContent, FileObject, SessionID } from './models';
 
 const SLUG_PART_LENGTH = 4;
@@ -25,8 +26,12 @@ export const jsonRequest = <T>(method: string, data: T) =>
 		body: JSON.stringify(data)
 	}) as RequestInit;
 
-export const getFileURL = (sid: SessionID, obj: FileObject, content: FileContent) =>
-	`/objects/${sid}/${obj.id}/${content.name}`;
+export const getFileURL = (sid: SessionID, obj: FileObject, content: FileContent) => {
+	const url = `/objects/${sid}/${obj.id}/${content.name}`;
+	const config = getCryptoConfig();
+	return config ? `${url}?auth=${config.authKeyURL}` : url;
+};
 
-export const base64URL = (b64: string) => b64.replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+export const base64URL = (b64: string) =>
+	b64.replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 export const unbase64URL = (b64: string) => b64.replaceAll('-', '+').replaceAll('_', '/');
