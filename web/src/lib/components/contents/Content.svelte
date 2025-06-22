@@ -17,9 +17,9 @@
 	}
 
 	const { object: obj, children, copyMenu, fileURL: fileURL, onDelete }: PartialProps = $props();
-	const { id, timestamp, mime } = obj;
+	const { id, timestamp, content } = obj;
 	const datetime = format(timestamp, 'yyyy-MM-dd HH:mm:ss');
-	const isTextContent = mime.startsWith('text/');
+	const isTextContent = content.kind !== 'file';
 
 	let timestampShown = $state(false);
 	const toggleTimestamp = () => {

@@ -164,8 +164,8 @@
 		state = { ...state, uploads, form };
 	};
 
-	const submit = async <C extends models.Content>(mime: string, content: C) => {
-		const upload = await maybeEncryptUpload({ mime, content });
+	const submit = async <C extends models.Content>(content: C) => {
+		const upload = await maybeEncryptUpload({ content });
 		state.uploading = true;
 		const res = await fetch(
 			`/api/session/${sid}/objects`,
@@ -181,14 +181,14 @@
 	};
 
 	const submitText = async () =>
-		submit<models.TextContent>('text/plain', {
+		submit<models.TextContent>({
 			kind: 'text',
 			data: state.text,
 			isSecret: state.form === FormState.Secret
 		});
 
 	const submitURL = async () =>
-		submit<models.LinkContent>('text/x-url', {
+		submit<models.LinkContent>({
 			kind: 'link',
 			url: state.url.value,
 			title: state.url.title
@@ -197,9 +197,9 @@
 	const uploadFile = async (upload: FileUpload) => {
 		const { file } = upload;
 		const meta = await maybeEncryptUpload({
-			mime: file.type,
 			content: {
 				kind: 'file',
+				mime: file.type,
 				name: file.name
 			}
 		} as models.Upload<models.FileContent>);

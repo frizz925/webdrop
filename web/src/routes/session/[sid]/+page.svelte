@@ -71,6 +71,8 @@
 	let objectIDs = new Set();
 
 	const objectURL = (oid: models.ObjectID) => `/api/session/${sid}/objects/${oid}`;
+	const objectMIME = ({ content }: models.FileObject) =>
+		content.kind === 'file' ? (content as models.FileContent).mime : 'application/octet-stream';
 
 	const getURL = () => new URL(window.location.toString());
 	const getSignedURL = () => {
@@ -344,21 +346,21 @@
 					onDelete={askObjectDelete}
 				/>
 			{:else if obj.content.kind === 'file'}
-				{#if obj.mime.startsWith('image/')}
+				{#if objectMIME(obj).startsWith('image/')}
 					<ImageContent
 						{sid}
 						object={obj}
 						content={obj.content as models.FileContent}
 						onDelete={askObjectDelete}
 					/>
-				{:else if obj.mime.startsWith('video/')}
+				{:else if objectMIME(obj).startsWith('video/')}
 					<VideoContent
 						{sid}
 						object={obj}
 						content={obj.content as models.FileContent}
 						onDelete={askObjectDelete}
 					/>
-				{:else if obj.mime.startsWith('audio/')}
+				{:else if objectMIME(obj).startsWith('audio/')}
 					<AudioContent
 						{sid}
 						object={obj}

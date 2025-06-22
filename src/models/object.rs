@@ -13,7 +13,6 @@ pub struct UnknownKindError;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ObjectDao {
     pub id: ObjectId,
-    pub mime: String,
     pub timestamp: DateTime<Utc>,
     pub content: Value,
 }
@@ -21,20 +20,26 @@ pub struct ObjectDao {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ObjectDto {
     pub id: ObjectId,
-    pub mime: String,
     pub timestamp: DateTime<Utc>,
     pub content: Value,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Upload {
-    pub mime: String,
     pub content: Value,
 }
 
 impl Upload {
-    pub fn new(mime: String, content: Value) -> Self {
-        Self { mime, content }
+    pub fn new(content: Value) -> Self {
+        Self { content }
+    }
+}
+
+impl Default for Upload {
+    fn default() -> Self {
+        Self {
+            content: Value::Null,
+        }
     }
 }
 
@@ -44,7 +49,6 @@ impl TryInto<ObjectDao> for Upload {
     fn try_into(self) -> Result<ObjectDao, Self::Error> {
         Ok(ObjectDao {
             id: ObjectId::generate()?,
-            mime: self.mime,
             timestamp: Utc::now(),
             content: self.content,
         })

@@ -136,7 +136,6 @@ impl AuthorizedRepository for ObjectFsRepository {}
 
 #[cfg(test)]
 mod tests {
-    use serde_json::Value;
     use temp_dir::TempDir;
 
     use crate::repositories::session::{SessionFsRepository, SessionRepository};
@@ -149,10 +148,7 @@ mod tests {
         let dir = tmpdir.path();
         let sid = SessionFsRepository::new(dir).create(None).await?.id;
         let repo = ObjectFsRepository::new(dir.join(sid.to_string()));
-        let upload = Upload {
-            mime: "text/plain".to_owned(),
-            content: Value::Null,
-        };
+        let upload = Upload::default();
         let oid = repo.put(upload).await?.id;
         let obj = repo.get(&oid).await?;
         assert_eq!(obj.id, oid);
