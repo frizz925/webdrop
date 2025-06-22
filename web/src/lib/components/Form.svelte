@@ -32,7 +32,7 @@
 		onSubmit: (obj: models.FileObject) => void;
 	}
 
-	interface Upload {
+	interface FileUpload {
 		id: symbol;
 		file: File;
 		progress: number;
@@ -48,7 +48,7 @@
 			value: string;
 			title?: string;
 		};
-		uploads: Upload[];
+		uploads: FileUpload[];
 		message: string;
 		uploading: boolean;
 		dragging: boolean;
@@ -104,7 +104,7 @@
 	const fileListToUploads = (fileList: FileList) => {
 		const uploads = [];
 		for (const file of fileList)
-			uploads.push({ id: Symbol(), file, progress: 0.0, finished: false } as Upload);
+			uploads.push({ id: Symbol(), file, progress: 0.0, finished: false } as FileUpload);
 		return uploads;
 	};
 
@@ -194,10 +194,19 @@
 			title: state.url.title
 		});
 
-	const uploadFile = async (upload: Upload) => {
+	const uploadFile = async (upload: FileUpload) => {
 		const { file } = upload;
+		const meta = await maybeEncryptUpload({
+			mime: file.type,
+			content: {
+				kind: 'file',
+				name: file.name
+			}
+		} as models.Upload<models.FileContent>);
+
 		const data = new FormData();
-		data.append('file', file, file.name);
+		data.append('meta', JSON.stringify(meta));
+		data.append('file', file);
 
 		const xhr = new XMLHttpRequest();
 		upload.xhr = xhr;

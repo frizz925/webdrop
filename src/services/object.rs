@@ -64,9 +64,8 @@ impl<O: ObjectRepository, S> ObjectService<O, S> {
     pub async fn download(
         &self,
         oid: &ObjectId,
-        name: &str,
     ) -> Result<Box<dyn AsyncRead + Unpin + Send + Sync>> {
-        normalize_result(self.repository.download(oid, name).await)
+        normalize_result(self.repository.download(oid).await)
     }
 
     pub async fn auth(&self, auth_key: &[u8]) -> Result<bool> {
