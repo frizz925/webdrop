@@ -25,6 +25,7 @@
 	import FormButtons from './buttons/FormButtons.svelte';
 	import IconButton from './buttons/IconButton.svelte';
 	import FilePreview from './FilePreview.svelte';
+	import { preventDefault } from './utils';
 
 	interface Props {
 		sid: string;
@@ -50,6 +51,7 @@
 		uploads: Upload[];
 		message: string;
 		uploading: boolean;
+		dragging: boolean;
 	}
 
 	const initialState = () =>
@@ -60,7 +62,8 @@
 			url: { value: '' },
 			uploads: [],
 			message: '',
-			uploading: false
+			uploading: false,
+			dragging: false
 		}) as State;
 
 	let { sid, onSubmit }: Props = $props();
@@ -71,7 +74,6 @@
 
 	const acceptMap = {
 		[FormState.None]: '',
-		[FormState.Drag]: '',
 		[FormState.Text]: 'text/*',
 		[FormState.Link]: 'text/x-uri',
 		[FormState.Image]: 'image/*',
@@ -264,39 +266,33 @@
 		}
 	};
 
-	let prevState: FormState;
-	const globalEnter = (evt: DragEvent) => {
+	const dragEnter = (evt: DragEvent) => {
 		evt.preventDefault();
-		if (state.form === FormState.Drag) return;
-		prevState = state.form;
-		state.form = FormState.Drag;
+		if (state.dragging) return;
+		state.dragging = true;
 	};
 
-	const globalDrop = (evt: DragEvent) => {
+	const dragDrop = (evt: DragEvent) => {
 		evt.preventDefault();
-		if (state.form !== FormState.Drag) return;
+		if (!state.dragging) return;
+		state.dragging = false;
+
 		const data = evt.dataTransfer;
 		if (!data) return;
 		updateFiles(data.files, FormState.File);
 	};
 
-	const globalLeave = (evt: DragEvent) => {
+	const dragLeave = (evt: DragEvent) => {
 		evt.preventDefault();
-		if (state.form === FormState.Drag) state.form = prevState;
+		if (state.dragging) state.dragging = false;
 	};
 
 	onMount(() => {
-		document.addEventListener('dragenter', globalEnter);
-		document.addEventListener('dragover', globalEnter);
-		document.addEventListener('dragleave', globalLeave);
-		document.addEventListener('drop', globalDrop);
+		document.addEventListener('dragenter', dragEnter);
 		document.addEventListener('paste', globalClipboard);
 
 		return () => {
-			document.removeEventListener('dragenter', globalEnter);
-			document.removeEventListener('dragover', globalEnter);
-			document.removeEventListener('dragleave', globalLeave);
-			document.removeEventListener('drop', globalDrop);
+			document.removeEventListener('dragenter', dragEnter);
 			document.removeEventListener('paste', globalClipboard);
 		};
 	});
@@ -365,11 +361,16 @@
 		onSubmit={uploadFiles}
 	/>
 </div>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-	class="text-accent flex flex-col items-center justify-center py-8"
-	class:hidden={state.form !== FormState.Drag}
+	class="drop-overlay flex bg-black/40"
+	class:hidden={!state.dragging}
+	ondragenter={preventDefault}
+	ondragover={preventDefault}
+	ondragleave={dragLeave}
+	ondrop={dragDrop}
 >
-	<div class="flex items-center justify-start font-bold">
+	<div class="pointer-events-none flex items-center justify-start font-bold">
 		<FontAwesomeIcon icon={faUpload} />
 		<div class="ml-2">Drag and drop files anywhere to upload</div>
 	</div>
@@ -385,5 +386,16 @@
 		box-shadow: none;
 		overflow: auto;
 		resize: none;
+	}
+
+	.drop-overlay {
+		position: fixed;
+		left: 0;
+		top: 0;
+		width: 100vw;
+		height: 100vh;
+		justify-content: center;
+		align-items: center;
+		z-index: 10;
 	}
 </style>

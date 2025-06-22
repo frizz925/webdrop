@@ -6,6 +6,5 @@ export enum FormState {
 	Video = 'video',
 	Audio = 'audio',
 	File = 'file',
-	Drag = 'drag',
 	Secret = 'secret'
 }
