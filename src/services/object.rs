@@ -21,7 +21,6 @@ use super::websocket::WebSocketService;
 #[derive(Debug)]
 pub enum ObjectError {
     NotFound,
-    AuthFail,
     Other(Box<dyn StdError>),
 }
 
@@ -29,7 +28,6 @@ impl Display for ObjectError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::NotFound => "Object not found".to_owned(),
-            Self::AuthFail => "Authentication failed".to_owned(),
             Self::Other(e) => e.to_string(),
         };
         f.write_str(&s)
@@ -71,17 +69,11 @@ impl<O: ObjectRepository, S> ObjectService<O, S> {
         normalize_result(self.repository.download(oid, name).await)
     }
 
-    pub async fn auth(&self, auth_key: &[u8]) -> Result<()> {
-        if self
-            .repository
+    pub async fn auth(&self, auth_key: &[u8]) -> Result<bool> {
+        self.repository
             .auth(auth_key)
             .await
-            .map_err(|e| ObjectError::Other(e))?
-        {
-            Ok(())
-        } else {
-            Err(ObjectError::AuthFail)
-        }
+            .map_err(|e| ObjectError::Other(e))
     }
 }
 

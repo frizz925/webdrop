@@ -87,11 +87,18 @@ async fn check_auth_key<R: SessionRepository>(
     params: &AuthParams,
 ) -> Result<(), StatusCode> {
     let auth_key = params.extract_auth_key()?;
-    service.auth(sid, &auth_key).await.map_err(|err| match err {
-        WebSocketError::AuthFail => StatusCode::UNAUTHORIZED,
-        WebSocketError::Other(e) => {
-            event!(Level::ERROR, "Authentication error: {e}");
-            StatusCode::INTERNAL_SERVER_ERROR
-        }
-    })
+    if service
+        .auth(sid, &auth_key)
+        .await
+        .map_err(|err| match err {
+            WebSocketError::Other(e) => {
+                event!(Level::ERROR, "Authentication error: {e}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        })?
+    {
+        Ok(())
+    } else {
+        Err(StatusCode::UNAUTHORIZED)
+    }
 }
