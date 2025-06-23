@@ -327,7 +327,8 @@
 		{/if}
 		{#if cryptoFailed}
 			<div class="text-red-400">
-				This session is encrypted but you don't have its master key. Contents of this session can't be shown.
+				This session is encrypted but you don't have its master key. Contents of this session can't
+				be shown.
 			</div>
 		{/if}
 	</div>
@@ -381,7 +382,7 @@
 		{/each}
 	</div>
 </div>
-<QRCodeModal bind:shown={qrcodeShown} text={page.url.toString()} />
+<QRCodeModal bind:shown={qrcodeShown} text={getSignedLink()} />
 <ConfirmationModal bind:shown={confirmSessionDelete}>
 	<div class="text-xl font-bold">Session termination</div>
 	<div class="mt-4">
