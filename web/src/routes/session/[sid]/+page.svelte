@@ -327,8 +327,7 @@
 		{/if}
 		{#if cryptoFailed}
 			<div class="text-red-400">
-				Session is encrypted but you don't have a valid master key. Contents of this session can't
-				be shown.
+				This session is encrypted but you don't have its master key. Contents of this session can't be shown.
 			</div>
 		{/if}
 	</div>
