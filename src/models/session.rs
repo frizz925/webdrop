@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::models::{crypto::KDFParams, object::ObjectId};
 
-use super::{object::ObjectDao, snowflake::SnowflakeId};
+use super::{object::Object, snowflake::SnowflakeId};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -18,14 +18,14 @@ pub struct SessionDto {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct SessionDao {
+pub struct Session {
     pub id: SessionId,
-    pub objects: VecDeque<ObjectDao>,
+    pub objects: VecDeque<Object>,
     pub creation_time: DateTime<Utc>,
-    pub crypto: Option<SessionCryptoDao>,
+    pub crypto: Option<SessionCrypto>,
 }
 
-impl SessionDao {
+impl Session {
     pub fn new(sid: SessionId, req: Option<CreateSession>) -> Self {
         Self {
             id: sid,
@@ -35,7 +35,7 @@ impl SessionDao {
         }
     }
 
-    pub fn add_object(&mut self, obj: ObjectDao) {
+    pub fn add_object(&mut self, obj: Object) {
         self.objects.push_front(obj);
     }
 
@@ -46,7 +46,7 @@ impl SessionDao {
     }
 }
 
-impl Into<SessionDto> for SessionDao {
+impl Into<SessionDto> for Session {
     fn into(self) -> SessionDto {
         SessionDto {
             id: self.id,
@@ -63,10 +63,13 @@ pub struct CreateSession {
     pub kdf_params: KDFParams,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct SessionCryptoDao {
-    pub auth_key: String,
-    pub kdf_params: KDFParams,
+impl Into<SessionCrypto> for CreateSession {
+    fn into(self) -> SessionCrypto {
+        SessionCrypto {
+            kdf_params: self.kdf_params,
+            auth_key: self.auth_key,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -75,16 +78,13 @@ pub struct SessionCryptoDto {
     pub kdf_params: KDFParams,
 }
 
-impl Into<SessionCryptoDao> for CreateSession {
-    fn into(self) -> SessionCryptoDao {
-        SessionCryptoDao {
-            kdf_params: self.kdf_params,
-            auth_key: self.auth_key,
-        }
-    }
+#[derive(Serialize, Deserialize)]
+pub struct SessionCrypto {
+    pub auth_key: String,
+    pub kdf_params: KDFParams,
 }
 
-impl Into<SessionCryptoDto> for SessionCryptoDao {
+impl Into<SessionCryptoDto> for SessionCrypto {
     fn into(self) -> SessionCryptoDto {
         SessionCryptoDto {
             kdf_params: self.kdf_params,

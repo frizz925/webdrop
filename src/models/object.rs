@@ -11,17 +11,31 @@ pub type ObjectId = SnowflakeId;
 pub struct UnknownKindError;
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct ObjectDao {
-    pub id: ObjectId,
-    pub timestamp: DateTime<Utc>,
-    pub content: Value,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ObjectDto {
     pub id: ObjectId,
     pub timestamp: DateTime<Utc>,
     pub content: Value,
+    pub mime: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Object {
+    pub id: ObjectId,
+    pub timestamp: DateTime<Utc>,
+    pub content: Value,
+    pub mime: Option<String>,
+}
+
+impl Into<ObjectDto> for Object {
+    fn into(self) -> ObjectDto {
+        ObjectDto {
+            id: self.id,
+            timestamp: self.timestamp,
+            content: self.content,
+            mime: self.mime,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -43,33 +57,15 @@ impl Default for Upload {
     }
 }
 
-impl TryInto<ObjectDao> for Upload {
+impl TryInto<Object> for Upload {
     type Error = SystemTimeError;
 
-    fn try_into(self) -> Result<ObjectDao, Self::Error> {
-        Ok(ObjectDao {
+    fn try_into(self) -> Result<Object, Self::Error> {
+        Ok(Object {
             id: ObjectId::generate()?,
             timestamp: Utc::now(),
             content: self.content,
+            mime: None,
         })
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct ObjectCryptoDao {
-    subkey: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct ObjectCryptoDto {
-    subkey: String,
-}
-
-impl Into<ObjectCryptoDao> for ObjectCryptoDto {
-    fn into(self) -> ObjectCryptoDao {
-        ObjectCryptoDao {
-            subkey: self.subkey,
-        }
     }
 }

@@ -18,7 +18,7 @@ use tracing::{event, Level};
 use crate::{
     controllers::{AuthKeyExtractor, AuthParams},
     models::{
-        object::{ObjectDao, ObjectId, Upload},
+        object::{ObjectDto, ObjectId, Upload},
         session::SessionId,
     },
     repositories::{object::ObjectRepository, session::SessionRepository},
@@ -69,7 +69,7 @@ async fn upload_handler(
     Path(sid): Path<SessionId>,
     headers: HeaderMap,
     multipart: Multipart,
-) -> Result<Json<ObjectDao>, StatusCode> {
+) -> Result<Json<ObjectDto>, StatusCode> {
     let service = (controller.factory)(&sid);
     check_header_auth_key(&service, &headers).await?;
     let result = do_upload(service, multipart).await.map_err(|err| {
@@ -90,7 +90,7 @@ async fn upload_handler(
 async fn do_upload<O: ObjectRepository, S: SessionRepository>(
     service: Arc<ObjectService<O, S>>,
     mut multipart: Multipart,
-) -> Result<Option<ObjectDao>, Box<dyn Error>> {
+) -> Result<Option<ObjectDto>, Box<dyn Error>> {
     let mut opt_upload: Option<Upload> = None;
     while let Some(field) = multipart.next_field().await? {
         match field.name().unwrap_or_default() {
@@ -104,7 +104,7 @@ async fn do_upload<O: ObjectRepository, S: SessionRepository>(
                 let stream = field.map_err(|err| IoError::new(ErrorKind::Other, err));
                 let reader = StreamReader::new(stream);
                 let obj = service.upload(upload, reader).await?;
-                return Ok(Some(obj));
+                return Ok(Some(obj.into()));
             }
             _ => continue,
         }

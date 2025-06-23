@@ -1,11 +1,13 @@
 use std::{
+    ffi::OsStr,
     fs,
     io::{ErrorKind, Write},
     path::{Path, PathBuf},
+    str::FromStr,
 };
 
 use crate::{
-    models::session::{CreateSession, SessionDao, SessionDto, SessionId},
+    models::session::{CreateSession, Session, SessionId},
     repositories::{
         fs::{AuthorizedRepository, BaseFsRepository},
         Result, SESSION_AUTH_KEY_FILE, SESSION_FILE,
@@ -39,26 +41,25 @@ impl SessionFsRepository {
 }
 
 impl SessionRepository for SessionFsRepository {
-    async fn exists(&self, sid: &SessionId) -> Result<bool> {
-        let path = self.session_file_path(&sid);
-        match fs::metadata(path) {
-            Ok(meta) => Ok(meta.is_file()),
-            Err(e) if e.kind() == ErrorKind::NotFound => Ok(false),
-            Err(e) => Err(Box::new(e)),
+    async fn list(&self) -> Result<Vec<SessionId>> {
+        let mut vec = Vec::default();
+        for result in fs::read_dir(&self.dir)? {
+            let dir = result?;
+            if let Some(name) = dir.path().file_name().and_then(OsStr::to_str) {
+                if let Ok(sid) = SessionId::from_str(name) {
+                    vec.push(sid);
+                }
+            }
         }
+        Ok(vec)
     }
 
-    async fn get(&self, sid: &SessionId) -> Result<SessionDto> {
-        let session: SessionDao = self.load(self.session_file_path(sid))?;
-        Ok(session.into())
-    }
-
-    async fn create(&self, req: Option<CreateSession>) -> Result<SessionDto> {
+    async fn create(&self, req: Option<CreateSession>) -> Result<Session> {
         let sid = SessionId::generate()?;
         let dir = self.session_dir_path(&sid);
         fs::create_dir(&dir)?;
 
-        let sess = SessionDao::new(sid, req);
+        let sess = Session::new(sid, req);
         let path = self.session_file_path(&sid);
         let file = fs::File::create_new(path)?;
         self.save(file, &sess)?;
@@ -70,6 +71,20 @@ impl SessionRepository for SessionFsRepository {
         }
 
         Ok(sess.into())
+    }
+
+    async fn exists(&self, sid: &SessionId) -> Result<bool> {
+        let path = self.session_file_path(&sid);
+        match fs::metadata(path) {
+            Ok(meta) => Ok(meta.is_file()),
+            Err(e) if e.kind() == ErrorKind::NotFound => Ok(false),
+            Err(e) => Err(Box::new(e)),
+        }
+    }
+
+    async fn get(&self, sid: &SessionId) -> Result<Session> {
+        let session: Session = self.load(self.session_file_path(sid))?;
+        Ok(session.into())
     }
 
     async fn delete(&self, sid: &SessionId) -> Result<()> {

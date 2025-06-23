@@ -11,7 +11,7 @@ use tokio::io::AsyncRead;
 use crate::{
     models::{
         event::{Event, EventName},
-        object::{ObjectDao, ObjectId, Upload},
+        object::{Object, ObjectId, Upload},
     },
     repositories::{object::ObjectRepository, session::SessionRepository},
 };
@@ -53,11 +53,11 @@ impl<O, S> ObjectService<O, S> {
 }
 
 impl<O: ObjectRepository, S> ObjectService<O, S> {
-    pub async fn list(&self) -> Result<Vec<ObjectDao>> {
+    pub async fn list(&self) -> Result<Vec<Object>> {
         normalize_result(self.repository.list().await)
     }
 
-    pub async fn get(&self, oid: &ObjectId) -> Result<ObjectDao> {
+    pub async fn get(&self, oid: &ObjectId) -> Result<Object> {
         normalize_result(self.repository.get(oid).await)
     }
 
@@ -77,7 +77,7 @@ impl<O: ObjectRepository, S> ObjectService<O, S> {
 }
 
 impl<O: ObjectRepository, S: SessionRepository> ObjectService<O, S> {
-    pub async fn put(&self, upload: Upload) -> Result<ObjectDao> {
+    pub async fn put(&self, upload: Upload) -> Result<Object> {
         normalize_result(
             self.repository
                 .put(upload)
@@ -86,7 +86,7 @@ impl<O: ObjectRepository, S: SessionRepository> ObjectService<O, S> {
         )
     }
 
-    pub async fn upload<R>(&self, upload: Upload, reader: R) -> Result<ObjectDao>
+    pub async fn upload<R>(&self, upload: Upload, reader: R) -> Result<Object>
     where
         R: AsyncRead + Unpin + Send + Sync,
     {
@@ -105,7 +105,7 @@ impl<O: ObjectRepository, S: SessionRepository> ObjectService<O, S> {
         }))
     }
 
-    fn publish_object_created(&self, obj: ObjectDao) -> ObjectDao {
+    fn publish_object_created(&self, obj: Object) -> Object {
         let event = Event::new(EventName::ObjectCreated, obj.id);
         self.websocket.publish(event);
         obj

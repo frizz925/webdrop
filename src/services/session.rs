@@ -9,7 +9,7 @@ use std::{
 use crate::{
     models::{
         event::EventName,
-        session::{CreateSession, SessionDto, SessionId},
+        session::{CreateSession, Session, SessionId},
     },
     registries::{OBJECT_SERVICES, WEBSOCKET_SERVICES},
     repositories::session::SessionRepository,
@@ -49,11 +49,11 @@ impl<R: SessionRepository> SessionService<R> {
         }
     }
 
-    pub async fn create(&self, req: Option<CreateSession>) -> Result<SessionDto> {
+    pub async fn create(&self, req: Option<CreateSession>) -> Result<Session> {
         normalize_result(self.repository.create(req).await)
     }
 
-    pub async fn get(&self, sid: &SessionId) -> Result<SessionDto> {
+    pub async fn get(&self, sid: &SessionId) -> Result<Session> {
         normalize_result(self.repository.get(sid).await)
     }
 
