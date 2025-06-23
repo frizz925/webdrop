@@ -13,6 +13,7 @@ RUN corepack enable
 COPY . /app
 WORKDIR /app/web
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+  --mount=type=cache,id=svelte-kit,target=/usr/src/webdrop/web/.svelte-kit \
   pnpm install --frozen-lockfile && pnpm run build
 
 FROM alpine:edge
