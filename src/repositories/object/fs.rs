@@ -8,8 +8,8 @@ use tokio::io::AsyncRead;
 
 use crate::{
     models::{
-        object::{ObjectDao, ObjectId, Upload},
-        session::SessionDao,
+        object::{Object, ObjectId, Upload},
+        session::Session,
     },
     repositories::{
         fs::{AuthorizedRepository, BaseFsRepository},
@@ -46,11 +46,11 @@ impl ObjectFsRepository {
         self.dir.join(oid.to_string())
     }
 
-    fn get_object(&self, oid: &ObjectId) -> Result<ObjectDao> {
+    fn get_object(&self, oid: &ObjectId) -> Result<Object> {
         self.load(self.object_metadata_path(oid))
     }
 
-    fn put_object(&self, obj: ObjectDao) -> Result<ObjectDao> {
+    fn put_object(&self, obj: Object) -> Result<Object> {
         let oid = &obj.id;
 
         let path = self.object_metadata_path(oid);
@@ -64,12 +64,12 @@ impl ObjectFsRepository {
         Ok(obj)
     }
 
-    fn load_session(&self) -> Result<SessionDao> {
+    fn load_session(&self) -> Result<Session> {
         let path = self.session_file_path();
         self.load(path)
     }
 
-    fn save_session(&self, sess: &SessionDao) -> Result<()> {
+    fn save_session(&self, sess: &Session) -> Result<()> {
         let path = self.session_file_path();
         let file = fs::File::create(path)?;
         self.save(file, sess)
@@ -77,31 +77,35 @@ impl ObjectFsRepository {
 }
 
 impl ObjectRepository for ObjectFsRepository {
-    async fn list(&self) -> Result<Vec<ObjectDao>> {
+    async fn list(&self) -> Result<Vec<Object>> {
         let session = self.load_session()?;
-        Ok(session.objects.into())
+        Ok(session.objects.into_iter().map(Into::into).collect())
     }
 
-    async fn get(&self, oid: &ObjectId) -> Result<ObjectDao> {
-        self.get_object(oid)
+    async fn put(&self, upload: Upload) -> Result<Object> {
+        let obj: Object = upload.try_into()?;
+        self.put_object(obj).map(Into::into)
     }
 
-    async fn put(&self, upload: Upload) -> Result<ObjectDao> {
-        let obj: ObjectDao = upload.try_into()?;
-        self.put_object(obj)
-    }
-
-    async fn upload<R>(&self, upload: Upload, mut reader: R) -> Result<ObjectDao>
+    async fn upload<R>(&self, upload: Upload, mut reader: R) -> Result<Object>
     where
         R: AsyncRead + Send + Unpin,
     {
-        let obj: ObjectDao = upload.try_into()?;
+        let obj: Object = upload.try_into()?;
         {
             let path = self.object_file_path(&obj.id);
             let mut file = tokio::fs::File::create_new(path).await?;
             tokio::io::copy(&mut reader, &mut file).await?;
         }
-        self.put_object(obj)
+        self.put_object(obj).map(Into::into)
+    }
+
+    async fn auth(&self, auth_key: &[u8]) -> Result<bool> {
+        self.check_auth_key(self.session_auth_key_path(), auth_key)
+    }
+
+    async fn get(&self, oid: &ObjectId) -> Result<Object> {
+        Ok(self.get_object(oid)?.into())
     }
 
     async fn download(&self, oid: &ObjectId) -> Result<Box<dyn AsyncRead + Unpin + Send + Sync>> {
@@ -124,10 +128,6 @@ impl ObjectRepository for ObjectFsRepository {
         self.save_session(&sess)?;
 
         Ok(())
-    }
-
-    async fn auth(&self, auth_key: &[u8]) -> Result<bool> {
-        self.check_auth_key(self.session_auth_key_path(), auth_key)
     }
 }
 

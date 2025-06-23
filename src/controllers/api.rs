@@ -11,7 +11,7 @@ use tracing::{event, Level};
 use crate::{
     controllers::AuthKeyExtractor,
     models::{
-        object::{ObjectDao, ObjectId, Upload},
+        object::{ObjectDto, ObjectId, Upload},
         session::{CreateSession, SessionDto, SessionId},
     },
     repositories::session::SessionRepository,
@@ -55,7 +55,10 @@ impl ApiController {
 async fn create_session(
     State(controller): State<Arc<ApiController>>,
 ) -> Result<Json<SessionDto>, StatusCode> {
-    normalize_json_result("create session", controller.session.create(None).await)
+    normalize_json_result(
+        "create session",
+        controller.session.create(None).await.map(Into::into),
+    )
 }
 
 async fn create_session_encrypted(
@@ -64,7 +67,11 @@ async fn create_session_encrypted(
 ) -> Result<Json<SessionDto>, StatusCode> {
     normalize_json_result(
         "create session encrypted",
-        controller.session.create(Some(request)).await,
+        controller
+            .session
+            .create(Some(request))
+            .await
+            .map(Into::into),
     )
 }
 
@@ -88,7 +95,10 @@ async fn get_session(
     State(controller): State<Arc<ApiController>>,
     Path(sid): Path<SessionId>,
 ) -> Result<Json<SessionDto>, StatusCode> {
-    normalize_json_result("get session", controller.session.get(&sid).await)
+    normalize_json_result(
+        "get session",
+        controller.session.get(&sid).await.map(Into::into),
+    )
 }
 
 async fn delete_session(
@@ -111,20 +121,26 @@ async fn list_objects(
     State(controller): State<Arc<ApiController>>,
     Path(sid): Path<SessionId>,
     headers: HeaderMap,
-) -> Result<Json<Vec<ObjectDao>>, StatusCode> {
+) -> Result<Json<Vec<ObjectDto>>, StatusCode> {
     check_auth_key(&controller.session, &sid, &headers).await?;
     let service = (controller.object)(&sid);
-    normalize_json_result("list objects", service.list().await)
+    normalize_json_result(
+        "list objects",
+        service
+            .list()
+            .await
+            .map(|v| v.into_iter().map(Into::into).collect()),
+    )
 }
 
 async fn get_object(
     State(controller): State<Arc<ApiController>>,
     Path((sid, oid)): Path<(SessionId, ObjectId)>,
     headers: HeaderMap,
-) -> Result<Json<ObjectDao>, StatusCode> {
+) -> Result<Json<ObjectDto>, StatusCode> {
     check_auth_key(&controller.session, &sid, &headers).await?;
     let service = (controller.object)(&sid);
-    normalize_json_result("get object", service.get(&oid).await)
+    normalize_json_result("get object", service.get(&oid).await.map(Into::into))
 }
 
 async fn create_object(
@@ -132,10 +148,10 @@ async fn create_object(
     Path(sid): Path<SessionId>,
     headers: HeaderMap,
     Json(upload): Json<Upload>,
-) -> Result<Json<ObjectDao>, StatusCode> {
+) -> Result<Json<ObjectDto>, StatusCode> {
     check_auth_key(&controller.session, &sid, &headers).await?;
     let service = (controller.object)(&sid);
-    normalize_json_result("create object", service.put(upload).await)
+    normalize_json_result("create object", service.put(upload).await.map(Into::into))
 }
 
 async fn delete_object(
