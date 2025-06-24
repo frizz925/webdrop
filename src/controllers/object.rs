@@ -7,7 +7,8 @@ use std::{
 use axum::{
     body::Body,
     extract::{multipart::MultipartError, DefaultBodyLimit, Multipart, Path, Query, State},
-    http::{HeaderMap, StatusCode},
+    http::{header, HeaderMap, Response, StatusCode},
+    response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
@@ -47,16 +48,26 @@ impl ObjectController {
 
 async fn download_handler(
     State(controller): State<Arc<ObjectController>>,
-    Path((sid, oid, _)): Path<(SessionId, ObjectId, String)>,
+    Path((sid, oid, filename)): Path<(SessionId, ObjectId, String)>,
     Query(params): Query<AuthParams>,
-) -> Result<Body, StatusCode> {
+) -> Result<impl IntoResponse, StatusCode> {
     let service = (controller.factory)(&sid);
     check_query_auth_key(&service, &params).await?;
     match service.download(&oid).await {
-        Ok(reader) => Ok(Body::from_stream(ReaderStream::new(reader))),
+        Ok(reader) => {
+            let mime = mime_guess::from_path(&filename).first_or_octet_stream();
+            let body = Body::from_stream(ReaderStream::new(reader));
+            Response::builder()
+                .header(header::CONTENT_TYPE, mime.essence_str())
+                .body(body)
+                .map_err(|e| {
+                    event!(Level::ERROR, "Download response error: {e}");
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })
+        }
         Err(err) => match err {
             ObjectError::Other(e) => {
-                event!(Level::ERROR, "Download erorr: {e}");
+                event!(Level::ERROR, "Download error: {e}");
                 Err(StatusCode::INTERNAL_SERVER_ERROR)
             }
             _ => Err(StatusCode::NOT_FOUND),
