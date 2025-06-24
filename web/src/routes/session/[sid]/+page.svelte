@@ -62,6 +62,7 @@
 
 	let sidShown = $state(false);
 	let qrcodeShown = $state(false);
+	let qrcodeLink = $state(page.url.toString());
 	let dropdownShown = $state(false);
 
 	let confirmSessionDelete = $state(false);
@@ -76,9 +77,8 @@
 		(obj.content.kind === 'file' && (obj.content as models.FileContent).mime) ||
 		'application/octet-stream';
 
-	const getURL = () => new URL(window.location.toString());
 	const getSignedURL = () => {
-		const url = getURL();
+		const url = page.url;
 		const key = window.localStorage.getItem(sid);
 		if (key) url.searchParams.set('key', base64URL(key));
 		return url;
@@ -162,25 +162,19 @@
 	};
 
 	const connectWS = () => {
-		const url = new URL(window.location.href);
+		const url = page.url;
 		url.protocol = url.protocol.replace('http', 'ws');
 		url.pathname = `/ws/${sid}`;
 
 		ws = new WebSocket(authorizedURL(url));
-		ws.onopen = () => {
-			console.log('WebSocket connected');
-		};
+		ws.onopen = () => console.log('WebSocket connected');
 		ws.onmessage = ({ data }) => {
 			if (typeof data !== 'string') return;
 			const evt = JSON.parse(data as string) as NotificationEvent;
 			const handler = notificationHandlers[evt.name];
 			if (handler) handler(evt);
 		};
-		ws.onerror = (e) => {
-			console.error('WebSocket error', e);
-			console.log('Reconnecting WebSocket in 5 seconds...');
-			setTimeout(connectWS, 5000);
-		};
+		ws.onerror = (e) => console.error('WebSocket error', e);
 		ws.onclose = () => {
 			console.log('WebSocket disconnected');
 			if (exited) return;
@@ -204,6 +198,7 @@
 		const authKey = encodeBuffer(authKeyRaw);
 
 		setCryptoConfig({ masterKey, authKey, authKeyURL: base64URL(authKey) });
+		qrcodeLink = getSignedLink();
 	};
 
 	const loadObjects = async () => {
@@ -256,7 +251,7 @@
 	];
 
 	onMount(async () => {
-		const url = getURL();
+		const url = page.url;
 		const urlKey = url.searchParams.get('key');
 		if (urlKey) {
 			if (!window.localStorage.getItem(sid)) window.localStorage.setItem(sid, unbase64URL(urlKey));
@@ -327,8 +322,7 @@
 		{/if}
 		{#if cryptoFailed}
 			<div class="text-red-400">
-				This session is encrypted but you don't have its master key. Contents of this session can't
-				be shown.
+				This session is encrypted but you don't have its master key. The contents can't be shown.
 			</div>
 		{/if}
 	</div>
@@ -382,7 +376,7 @@
 		{/each}
 	</div>
 </div>
-<QRCodeModal bind:shown={qrcodeShown} text={getSignedLink()} />
+<QRCodeModal bind:shown={qrcodeShown} text={qrcodeLink} />
 <ConfirmationModal bind:shown={confirmSessionDelete}>
 	<div class="text-xl font-bold">Session termination</div>
 	<div class="mt-4">
