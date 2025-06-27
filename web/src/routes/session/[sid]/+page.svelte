@@ -78,7 +78,7 @@
 		'application/octet-stream';
 
 	const getSignedURL = () => {
-		const url = page.url;
+		const url = new URL(page.url);
 		const key = window.localStorage.getItem(sid);
 		if (key) url.searchParams.set('key', base64URL(key));
 		return url;
