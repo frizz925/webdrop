@@ -162,7 +162,7 @@
 	};
 
 	const connectWS = () => {
-		const url = page.url;
+		const url = new URL(page.url);
 		url.protocol = url.protocol.replace('http', 'ws');
 		url.pathname = `/ws/${sid}`;
 
