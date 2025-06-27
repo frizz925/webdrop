@@ -165,6 +165,7 @@
 		const url = new URL(page.url);
 		url.protocol = url.protocol.replace('http', 'ws');
 		url.pathname = `/ws/${sid}`;
+		url.search = '';
 
 		ws = new WebSocket(authorizedURL(url));
 		ws.onopen = () => console.log('WebSocket connected');
