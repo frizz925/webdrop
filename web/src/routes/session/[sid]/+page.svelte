@@ -4,6 +4,7 @@
 		faEllipsisV,
 		faEye,
 		faEyeSlash,
+		faKey,
 		faLink,
 		faLock,
 		faQrcode,
@@ -48,6 +49,7 @@
 	} from '$lib/crypto';
 
 	import { getObjects } from '$lib/api/session';
+	import PasswordForm from '$lib/components/PasswordForm.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import type { PageData } from './$types';
 
@@ -77,9 +79,11 @@
 		(obj.content.kind === 'file' && (obj.content as models.FileContent).mime) ||
 		'application/octet-stream';
 
+	const getSessionKey = () => window.localStorage.getItem(sid);
 	const getSignedURL = () => {
 		const url = new URL(page.url);
-		const key = window.localStorage.getItem(sid);
+		url.search = '';
+		const key = getSessionKey();
 		if (key) url.searchParams.set('key', base64URL(key));
 		return url;
 	};
@@ -94,6 +98,10 @@
 
 	const copyLink = () => copyToClipboard(getSignedLink(), 'Session URL');
 	const copySlug = () => copyToClipboard(slug, 'Session ID');
+	const copyKey = () => {
+		const key = getSessionKey();
+		key && copyToClipboard(key, 'Session key');
+	};
 
 	const showQrcode = () => (qrcodeShown = true);
 	const returnToTop = () => window.scrollTo(0, 0);
@@ -186,6 +194,8 @@
 	};
 
 	const setupSessionCrypto = async (config: models.SessionCrypto) => {
+		cryptoFailed = false;
+
 		const password = window.localStorage.getItem(sid);
 		if (!password) {
 			cryptoFailed = true;
@@ -200,6 +210,7 @@
 
 		setCryptoConfig({ masterKey, authKey, authKeyURL: base64URL(authKey) });
 		qrcodeLink = getSignedLink();
+		cryptoFailed = false;
 	};
 
 	const loadObjects = async () => {
@@ -214,6 +225,19 @@
 			objects.map(async (obj, idx) => (objects[idx] = await maybeDecryptObject(obj)))
 		);
 		sessionReady = true;
+	};
+
+	const loadSession = async () => {
+		sessionReady = false;
+		if (session.crypto) await setupSessionCrypto(session.crypto);
+		await loadObjects();
+		connectWS();
+		sessionReady = true;
+	};
+
+	const unlockSession = async (password: string) => {
+		window.localStorage.setItem(sid, password);
+		await loadSession();
 	};
 
 	const sessionMenuList: () => Menu[] = () => [
@@ -238,6 +262,12 @@
 			onClick: copySlug
 		},
 		{
+			label: 'Copy Session Key',
+			icon: faKey,
+			onClick: copyKey,
+			hidden: !encrypted || cryptoFailed
+		},
+		{
 			label: 'Exit Session',
 			icon: faSignOut,
 			onClick: exitSession
@@ -259,20 +289,17 @@
 			url.searchParams.delete('key');
 			window.location.replace(url);
 		}
-
-		if (session.crypto) await setupSessionCrypto(session.crypto);
-		await loadObjects();
-		connectWS();
+		loadSession();
 	});
 </script>
 
 <div
-	class="fixed left-0 top-0 z-10 flex h-12 w-full items-center justify-center border-b bg-white px-4 dark:bg-slate-800"
+	class="fixed top-0 left-0 z-10 flex h-12 w-full items-center justify-center border-b bg-white px-4 dark:bg-slate-800"
 >
 	<button class="cursor-pointer text-xl font-bold" onclick={returnToTop}>WebDrop</button>
 </div>
 <div class="mt-12 bg-white dark:bg-slate-800">
-	<div class="flex items-center justify-start border-b py-1 pl-4 pr-2">
+	<div class="flex items-center justify-start border-b py-1 pr-2 pl-4">
 		<div class="flex grow items-center justify-start">
 			<div class="mr-2 text-xs" class:hidden={!encrypted}>
 				<FontAwesomeIcon icon={faLock} />
@@ -323,7 +350,10 @@
 		{/if}
 		{#if cryptoFailed}
 			<div class="text-red-400">
-				This session is encrypted but you don't have its master key. The contents can't be shown.
+				This session is encrypted. Please enter a session key to access its contents.
+			</div>
+			<div class="mt-2">
+				<PasswordForm placeholder="Session key" action="Unlock" onSubmit={unlockSession} />
 			</div>
 		{/if}
 	</div>
@@ -382,7 +412,7 @@
 	<div class="text-xl font-bold">Session termination</div>
 	<div class="mt-4">
 		<div>Do you want to terminate the session?</div>
-		<div class="font-semibold italic text-red-400">Your uploaded files will be deleted!</div>
+		<div class="font-semibold text-red-400 italic">Your uploaded files will be deleted!</div>
 	</div>
 	<div class="mt-8 text-right">
 		<button
@@ -401,7 +431,7 @@
 	<div class="text-xl font-bold">Delete object</div>
 	<div class="mt-4">
 		<div>Are you sure you want to delete this object?</div>
-		<div class="font-semibold italic text-red-400">Deleted objects can't be recovered!</div>
+		<div class="font-semibold text-red-400 italic">Deleted objects can't be recovered!</div>
 	</div>
 	<div class="mt-8 text-right">
 		<button
