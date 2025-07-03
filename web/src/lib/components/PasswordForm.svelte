@@ -15,7 +15,12 @@
 </script>
 
 <form onsubmit={handleForm} class="flex items-stretch justify-start">
-	<input type="password" {placeholder} bind:value class="block grow border-r-0 border-gray-400" />
+	<input
+		type="password"
+		{placeholder}
+		bind:value
+		class="block grow border-r-0 border-gray-200 bg-white dark:border-slate-600 dark:bg-slate-800"
+	/>
 	<input
 		type="submit"
 		value={action}
