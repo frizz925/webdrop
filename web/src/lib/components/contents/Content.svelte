@@ -38,8 +38,10 @@
 
 	const copyLink = () => {
 		if (!fileURL) return;
+		const parts = fileURL.split('?', 2);
 		const url = new URL(window.location.toString());
-		url.pathname = fileURL;
+		url.pathname = parts[0];
+		url.search = parts[1] || '';
 		copyToClipboard(url.toString(), 'Object URL');
 	};
 
