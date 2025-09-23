@@ -10,7 +10,7 @@
 	let { shown = $bindable(), text }: Props = $props();
 
 	$effect(() => {
-		QRCode.toCanvas(canvas, text, { scale: 10 });
+		QRCode.toCanvas(canvas, text, { scale: 5 });
 	});
 </script>
 
