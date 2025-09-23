@@ -326,7 +326,7 @@
 	<div class="relative">
 		<div class="textarea mb-4" contenteditable="plaintext-only" bind:innerText={state.text}></div>
 		<div
-			class="pointer-events-none absolute left-0 top-0 text-gray-500"
+			class="pointer-events-none absolute top-0 left-0 text-gray-500"
 			class:hidden={textInputValid(state.text)}
 		>
 			{state.textPlaceholder}

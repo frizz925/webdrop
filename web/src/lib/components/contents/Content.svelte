@@ -71,7 +71,7 @@
 
 <div class="border-b">
 	{@render children?.()}
-	<div class="text-sub mb-2 flex items-center justify-start pl-4 pr-2 text-sm">
+	<div class="text-sub mb-2 flex items-center justify-start pr-2 pl-4 text-sm">
 		<div class="grow">
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
