@@ -107,7 +107,8 @@ export const maybeEncryptUpload = async <C extends Content>(upload: Upload<C>) =
 			cipher: encodeCipherParams(cipher),
 			ciphertext: encodeBuffer(ciphertext),
 			wrappedKey: encodeBuffer(wrappedKey)
-		}
+		},
+		generateAuthKey: true
 	} as Upload<EncryptedContent>;
 };
 
