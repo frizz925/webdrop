@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct KDFParams {
     pub name: String,
     pub hash: String,

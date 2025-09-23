@@ -6,6 +6,7 @@ use std::{
     sync::Arc,
 };
 
+use futures::TryFutureExt;
 use tokio::io::AsyncRead;
 
 use crate::{
@@ -68,21 +69,28 @@ impl<O: ObjectRepository, S> ObjectService<O, S> {
         normalize_result(self.repository.download(oid).await)
     }
 
-    pub async fn auth(&self, auth_key: &[u8]) -> Result<bool> {
-        self.repository
-            .auth(auth_key)
-            .await
-            .map_err(|e| ObjectError::Other(e))
+    pub async fn object_auth(&self, oid: &ObjectId, auth_key: &[u8]) -> Result<bool> {
+        if let Some(expected) = self
+            .repository
+            .auth_key(oid)
+            .map_err(ObjectError::Other)
+            .await?
+        {
+            Ok(auth_key == &expected)
+        } else {
+            Ok(true)
+        }
     }
 }
 
 impl<O: ObjectRepository, S: SessionRepository> ObjectService<O, S> {
     pub async fn put(&self, upload: Upload) -> Result<Object> {
+        let obj = upload.into();
         normalize_result(
             self.repository
-                .put(upload)
+                .put(&obj)
                 .await
-                .map(|obj| self.publish_object_created(obj)),
+                .map(|_| self.publish_object_created(obj)),
         )
     }
 
@@ -90,11 +98,12 @@ impl<O: ObjectRepository, S: SessionRepository> ObjectService<O, S> {
     where
         R: AsyncRead + Unpin + Send + Sync,
     {
+        let obj = upload.into();
         normalize_result(
             self.repository
-                .upload(upload, reader)
+                .upload(&obj, reader)
                 .await
-                .map(|obj| self.publish_object_created(obj)),
+                .map(|_| self.publish_object_created(obj)),
         )
     }
 

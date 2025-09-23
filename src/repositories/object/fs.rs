@@ -4,17 +4,15 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use base64::{prelude::BASE64_STANDARD, Engine};
 use tokio::io::AsyncRead;
 
 use crate::{
     models::{
-        object::{Object, ObjectId, Upload},
+        object::{Object, ObjectId},
         session::Session,
     },
-    repositories::{
-        fs::{AuthorizedRepository, BaseFsRepository},
-        Result, SESSION_AUTH_KEY_FILE, SESSION_FILE,
-    },
+    repositories::{fs::BaseFsRepository, Result, SESSION_AUTH_KEY_FILE, SESSION_FILE},
 };
 
 use super::ObjectRepository;
@@ -50,7 +48,7 @@ impl ObjectFsRepository {
         self.load(self.object_metadata_path(oid))
     }
 
-    fn put_object(&self, obj: Object) -> Result<Object> {
+    fn put_object(&self, obj: &Object) -> Result<()> {
         let oid = &obj.id;
 
         let path = self.object_metadata_path(oid);
@@ -61,7 +59,7 @@ impl ObjectFsRepository {
         sess.add_object(obj.clone());
         self.save_session(&sess)?;
 
-        Ok(obj)
+        Ok(())
     }
 
     fn load_session(&self) -> Result<Session> {
@@ -82,26 +80,20 @@ impl ObjectRepository for ObjectFsRepository {
         Ok(session.objects.into_iter().map(Into::into).collect())
     }
 
-    async fn put(&self, upload: Upload) -> Result<Object> {
-        let obj: Object = upload.try_into()?;
-        self.put_object(obj).map(Into::into)
+    async fn put(&self, obj: &Object) -> Result<()> {
+        self.put_object(obj)
     }
 
-    async fn upload<R>(&self, upload: Upload, mut reader: R) -> Result<Object>
+    async fn upload<R>(&self, obj: &Object, mut reader: R) -> Result<()>
     where
         R: AsyncRead + Send + Unpin,
     {
-        let obj: Object = upload.try_into()?;
         {
             let path = self.object_file_path(&obj.id);
             let mut file = tokio::fs::File::create_new(path).await?;
             tokio::io::copy(&mut reader, &mut file).await?;
         }
         self.put_object(obj).map(Into::into)
-    }
-
-    async fn auth(&self, auth_key: &[u8]) -> Result<bool> {
-        self.check_auth_key(self.session_auth_key_path(), auth_key)
     }
 
     async fn get(&self, oid: &ObjectId) -> Result<Object> {
@@ -129,16 +121,34 @@ impl ObjectRepository for ObjectFsRepository {
 
         Ok(())
     }
+
+    async fn auth_key(&self, oid: &ObjectId) -> Result<Option<Vec<u8>>> {
+        let obj = self.get_object(oid)?;
+        let key = if let Some(auth_key) = obj.auth_key {
+            auth_key
+        } else {
+            let key_path = self.session_auth_key_path();
+            if fs::exists(&key_path)? {
+                self.read_string(key_path)?
+            } else {
+                return Ok(None);
+            }
+        };
+        let buf = BASE64_STANDARD.decode(key)?;
+        Ok(Some(buf))
+    }
 }
 
 impl BaseFsRepository for ObjectFsRepository {}
-impl AuthorizedRepository for ObjectFsRepository {}
 
 #[cfg(test)]
 mod tests {
     use temp_dir::TempDir;
 
-    use crate::repositories::session::{SessionFsRepository, SessionRepository};
+    use crate::{
+        models::object::Upload,
+        repositories::session::{SessionFsRepository, SessionRepository},
+    };
 
     use super::*;
 
@@ -146,12 +156,19 @@ mod tests {
     async fn put_and_get_object() -> Result<()> {
         let tmpdir = TempDir::new()?;
         let dir = tmpdir.path();
-        let sid = SessionFsRepository::new(dir).create(None).await?.id;
+
+        let sid = {
+            let sess = Session::default();
+            SessionFsRepository::new(dir).create(&sess).await?;
+            sess.id
+        };
+
         let repo = ObjectFsRepository::new(dir.join(sid.to_string()));
-        let upload = Upload::default();
-        let oid = repo.put(upload).await?.id;
-        let obj = repo.get(&oid).await?;
-        assert_eq!(obj.id, oid);
+        let obj = Upload::default().try_into()?;
+        repo.put(&obj).await?;
+
+        let obj2 = repo.get(&obj.id).await?;
+        assert_eq!(obj2, obj);
         Ok(())
     }
 }
