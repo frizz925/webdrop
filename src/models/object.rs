@@ -42,13 +42,18 @@ impl Into<ObjectDto> for Object {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Upload {
     pub content: Value,
+    pub generate_auth_key: Option<bool>,
 }
 
 impl Upload {
-    pub fn new(content: Value) -> Self {
-        Self { content }
+    pub fn new(content: Value, generate_auth_key: bool) -> Self {
+        Self {
+            content,
+            generate_auth_key: Some(generate_auth_key),
+        }
     }
 }
 
@@ -56,21 +61,27 @@ impl Default for Upload {
     fn default() -> Self {
         Self {
             content: Value::Null,
+            generate_auth_key: None,
         }
     }
 }
 
 impl Into<Object> for Upload {
     fn into(self) -> Object {
-        let mut auth_key_raw = [0u8; 48];
-        StdRng::from_os_rng().fill_bytes(&mut auth_key_raw);
-        let auth_key = BASE64_STANDARD_NO_PAD.encode(auth_key_raw);
+        let auth_key = if self.generate_auth_key.unwrap_or_default() {
+            let mut buf = [0u8; 48];
+            StdRng::from_os_rng().fill_bytes(&mut buf);
+            let encoded = BASE64_STANDARD_NO_PAD.encode(buf);
+            Some(encoded)
+        } else {
+            None
+        };
         Object {
             id: ObjectId::generate(),
             timestamp: Utc::now(),
             content: self.content,
             mime: None,
-            auth_key: Some(auth_key),
+            auth_key,
         }
     }
 }
