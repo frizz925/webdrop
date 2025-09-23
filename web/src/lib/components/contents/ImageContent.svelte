@@ -23,11 +23,13 @@
 		canvas.toBlob((blob) => blob && copyToClipboard(blob, 'Image'));
 	};
 
-	const copyMenu: Menu = {
-		label: 'Copy Image',
-		icon: faImage,
-		onClick: copyImage
-	};
+	const copyMenus: Menu[] = [
+		{
+			label: 'Copy Image',
+			icon: faImage,
+			onClick: copyImage
+		}
+	];
 </script>
 
 <a href={src} target="_blank">
@@ -38,7 +40,8 @@
 	link={src}
 	object={obj}
 	content={obj.content as FileContent}
-	{copyMenu}
+	{copyMenus}
 	{onDelete}
+	filename={(obj.content as FileContent).name}
 	download
 />

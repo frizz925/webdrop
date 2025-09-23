@@ -12,4 +12,11 @@
 <div class="px-4 pt-4">
 	<audio controls {src} class="w-full"></audio>
 </div>
-<LinkContent link={src} object={obj} content={obj.content as FileContent} {onDelete} download />
+<LinkContent
+	link={src}
+	object={obj}
+	content={obj.content as FileContent}
+	{onDelete}
+	filename={(obj.content as FileContent).name}
+	download
+/>

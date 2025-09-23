@@ -19,5 +19,6 @@
 	object={obj}
 	content={obj.content as FileContent}
 	{onDelete}
+	filename={(obj.content as FileContent).name}
 	download
 />
