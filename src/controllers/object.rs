@@ -23,17 +23,21 @@ use crate::{
         session::SessionId,
     },
     repositories::{object::ObjectRepository, session::SessionRepository},
-    services::object::{ObjectError, ObjectService},
-    ObjectServiceFactory,
+    services::{
+        object::{ObjectError, ObjectService},
+        session::{SessionError, SessionService},
+    },
+    ConcreteSessionService, ObjectServiceFactory,
 };
 
 pub struct ObjectController {
     factory: ObjectServiceFactory,
+    session: Arc<ConcreteSessionService>,
 }
 
 impl ObjectController {
-    pub fn new(factory: ObjectServiceFactory) -> Self {
-        Self { factory }
+    pub fn new(factory: ObjectServiceFactory, session: Arc<ConcreteSessionService>) -> Self {
+        Self { factory, session }
     }
 
     pub fn into_router(self) -> Router {
@@ -52,7 +56,8 @@ async fn download_handler(
     Query(params): Query<AuthParams>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let service = (controller.factory)(&sid);
-    check_query_auth_key(&service, &params).await?;
+    check_object_auth_key(&service, &oid, &params).await?;
+
     match service.download(&oid).await {
         Ok(reader) => {
             let mime = mime_guess::from_path(&filename).first_or_octet_stream();
@@ -81,8 +86,9 @@ async fn upload_handler(
     headers: HeaderMap,
     multipart: Multipart,
 ) -> Result<Json<ObjectDto>, StatusCode> {
+    check_session_auth_key(&controller.session, &sid, &headers).await?;
+
     let service = (controller.factory)(&sid);
-    check_header_auth_key(&service, &headers).await?;
     let result = do_upload(service, multipart).await.map_err(|err| {
         if let Some(e) = err.downcast_ref::<MultipartError>() {
             event!(Level::ERROR, "Multipart error: {e}");
@@ -123,35 +129,36 @@ async fn do_upload<O: ObjectRepository, S: SessionRepository>(
     Ok(None)
 }
 
-async fn check_query_auth_key<O: ObjectRepository, S>(
+async fn check_object_auth_key<O: ObjectRepository, S, E: AuthKeyExtractor>(
     service: &Arc<ObjectService<O, S>>,
-    params: &AuthParams,
+    oid: &ObjectId,
+    extractor: E,
 ) -> Result<(), StatusCode> {
-    let auth_key = params.extract_auth_key()?;
-    check_auth_key(service, &auth_key).await
-}
-
-async fn check_header_auth_key<O: ObjectRepository, S>(
-    service: &Arc<ObjectService<O, S>>,
-    headers: &HeaderMap,
-) -> Result<(), StatusCode> {
-    let auth_key = headers.extract_auth_key()?;
-    check_auth_key(service, &auth_key).await
-}
-
-async fn check_auth_key<O: ObjectRepository, S>(
-    service: &Arc<ObjectService<O, S>>,
-    auth_key: &[u8],
-) -> Result<(), StatusCode> {
-    if service.auth(auth_key).await.map_err(|err| match err {
-        ObjectError::NotFound => StatusCode::NOT_FOUND,
-        ObjectError::Other(e) => {
+    let auth_key = extractor.extract_auth_key()?;
+    match service.object_auth(oid, &auth_key).await {
+        Ok(true) => Ok(()),
+        Ok(false) => Err(StatusCode::UNAUTHORIZED),
+        Err(ObjectError::NotFound) => Err(StatusCode::NOT_FOUND),
+        Err(ObjectError::Other(e)) => {
             event!(Level::ERROR, "Authentication error: {e}");
-            StatusCode::INTERNAL_SERVER_ERROR
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
-    })? {
-        Ok(())
-    } else {
-        Err(StatusCode::UNAUTHORIZED)
+    }
+}
+
+async fn check_session_auth_key<S: SessionRepository, E: AuthKeyExtractor>(
+    service: &Arc<SessionService<S>>,
+    sid: &SessionId,
+    extractor: E,
+) -> Result<(), StatusCode> {
+    let auth_key = extractor.extract_auth_key()?;
+    match service.session_auth(sid, &auth_key).await {
+        Ok(true) => Ok(()),
+        Ok(false) => Err(StatusCode::UNAUTHORIZED),
+        Err(SessionError::NotFound) => Err(StatusCode::NOT_FOUND),
+        Err(SessionError::Other(e)) => {
+            event!(Level::ERROR, "Authentication error: {e}");
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }

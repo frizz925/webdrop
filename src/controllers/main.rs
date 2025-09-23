@@ -31,8 +31,8 @@ impl MainController {
     pub fn into_router(self) -> Router {
         let index = format!("{PUBLIC_PATH}/index.html");
         let ws = WebSocketController::new(self.websocket);
-        let api = ApiController::new(self.session, self.object);
-        let object = ObjectController::new(self.object);
+        let api = ApiController::new(Arc::clone(&self.session), self.object);
+        let object = ObjectController::new(self.object, Arc::clone(&self.session));
         Router::new()
             .nest("/ws", ws.into_router())
             .nest("/api", api.into_router())

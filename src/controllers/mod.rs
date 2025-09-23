@@ -44,7 +44,7 @@ pub trait AuthKeyExtractor {
     fn extract_auth_key(&self) -> Result<Vec<u8>, StatusCode>;
 }
 
-impl AuthKeyExtractor for HeaderMap {
+impl AuthKeyExtractor for &HeaderMap {
     fn extract_auth_key(&self) -> Result<Vec<u8>, StatusCode> {
         if let Some(encoded) = self.get("X-Auth-Key") {
             BASE64_STANDARD
@@ -61,7 +61,7 @@ pub struct AuthParams {
     auth: Option<String>,
 }
 
-impl AuthKeyExtractor for AuthParams {
+impl AuthKeyExtractor for &AuthParams {
     fn extract_auth_key(&self) -> Result<Vec<u8>, StatusCode> {
         if let Some(encoded) = self.auth.as_deref() {
             BASE64_URL_SAFE_NO_PAD

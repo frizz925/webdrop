@@ -1,6 +1,6 @@
-use std::time::SystemTimeError;
-
+use base64::{prelude::BASE64_STANDARD_NO_PAD, Engine};
 use chrono::{DateTime, Utc};
+use rand::{rngs::StdRng, RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -17,14 +17,16 @@ pub struct ObjectDto {
     pub timestamp: DateTime<Utc>,
     pub content: Value,
     pub mime: Option<String>,
+    pub auth_key: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct Object {
     pub id: ObjectId,
     pub timestamp: DateTime<Utc>,
     pub content: Value,
     pub mime: Option<String>,
+    pub auth_key: Option<String>,
 }
 
 impl Into<ObjectDto> for Object {
@@ -34,6 +36,7 @@ impl Into<ObjectDto> for Object {
             timestamp: self.timestamp,
             content: self.content,
             mime: self.mime,
+            auth_key: self.auth_key,
         }
     }
 }
@@ -57,15 +60,17 @@ impl Default for Upload {
     }
 }
 
-impl TryInto<Object> for Upload {
-    type Error = SystemTimeError;
-
-    fn try_into(self) -> Result<Object, Self::Error> {
-        Ok(Object {
-            id: ObjectId::generate()?,
+impl Into<Object> for Upload {
+    fn into(self) -> Object {
+        let mut auth_key_raw = [0u8; 48];
+        StdRng::from_os_rng().fill_bytes(&mut auth_key_raw);
+        let auth_key = BASE64_STANDARD_NO_PAD.encode(auth_key_raw);
+        Object {
+            id: ObjectId::generate(),
             timestamp: Utc::now(),
             content: self.content,
             mime: None,
-        })
+            auth_key: Some(auth_key),
+        }
     }
 }
