@@ -24,7 +24,6 @@ const encoder = new TextEncoder();
 const AUTH_KEY_CONSTRUCT = encoder.encode('わたしはわたしでいたいから');
 export const AUTH_KEY_HEADER = 'X-Auth-Key';
 
-const HKDF_INFO = encoder.encode('WebDrop HKDF');
 const SUB_KEY_PARAMS: AesKeyGenParams & AesDerivedKeyParams = {
 	name: 'AES-GCM',
 	length: 256
