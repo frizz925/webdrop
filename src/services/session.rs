@@ -50,7 +50,9 @@ impl<R: SessionRepository> SessionService<R> {
     }
 
     pub async fn create(&self, req: Option<CreateSession>) -> Result<Session> {
-        normalize_result(self.repository.create(req).await)
+        let sid = SessionId::generate();
+        let sess = Session::new(sid, req);
+        normalize_result(self.repository.create(&sess).await.map(|_| sess))
     }
 
     pub async fn get(&self, sid: &SessionId) -> Result<Session> {
@@ -70,11 +72,17 @@ impl<R: SessionRepository> SessionService<R> {
         }))
     }
 
-    pub async fn auth(&self, sid: &SessionId, auth_key: &[u8]) -> Result<bool> {
-        self.repository
-            .auth(sid, auth_key)
+    pub async fn session_auth(&self, sid: &SessionId, auth_key: &[u8]) -> Result<bool> {
+        if let Some(expected) = self
+            .repository
+            .auth_key(sid)
             .await
-            .map_err(|e| SessionError::Other(e))
+            .map_err(SessionError::Other)?
+        {
+            Ok(auth_key == &expected)
+        } else {
+            Ok(true)
+        }
     }
 }
 

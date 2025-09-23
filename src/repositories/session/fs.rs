@@ -6,12 +6,11 @@ use std::{
     str::FromStr,
 };
 
+use base64::{prelude::BASE64_STANDARD, Engine};
+
 use crate::{
-    models::session::{CreateSession, Session, SessionId},
-    repositories::{
-        fs::{AuthorizedRepository, BaseFsRepository},
-        Result, SESSION_AUTH_KEY_FILE, SESSION_FILE,
-    },
+    models::session::{Session, SessionId},
+    repositories::{fs::BaseFsRepository, Result, SESSION_AUTH_KEY_FILE, SESSION_FILE},
 };
 
 use super::SessionRepository;
@@ -54,23 +53,22 @@ impl SessionRepository for SessionFsRepository {
         Ok(vec)
     }
 
-    async fn create(&self, req: Option<CreateSession>) -> Result<Session> {
-        let sid = SessionId::generate()?;
-        let dir = self.session_dir_path(&sid);
+    async fn create(&self, sess: &Session) -> Result<()> {
+        let sid = &sess.id;
+        let dir = self.session_dir_path(sid);
         fs::create_dir(&dir)?;
 
-        let sess = Session::new(sid, req);
-        let path = self.session_file_path(&sid);
+        let path = self.session_file_path(sid);
         let file = fs::File::create_new(path)?;
-        self.save(file, &sess)?;
+        self.save(file, sess)?;
 
         if let Some(crypto) = sess.crypto.as_ref() {
-            let path = self.session_auth_key_path(&sid);
+            let path = self.session_auth_key_path(sid);
             let mut file = fs::File::create_new(path)?;
             file.write_all(crypto.auth_key.as_bytes())?;
         }
 
-        Ok(sess.into())
+        Ok(())
     }
 
     async fn exists(&self, sid: &SessionId) -> Result<bool> {
@@ -92,13 +90,19 @@ impl SessionRepository for SessionFsRepository {
         Ok(())
     }
 
-    async fn auth(&self, sid: &SessionId, auth_key: &[u8]) -> Result<bool> {
-        self.check_auth_key(self.session_auth_key_path(sid), auth_key)
+    async fn auth_key(&self, sid: &SessionId) -> Result<Option<Vec<u8>>> {
+        let key_path = self.session_auth_key_path(sid);
+        let key = if fs::exists(&key_path)? {
+            self.read_string(self.session_auth_key_path(sid))?
+        } else {
+            return Ok(None);
+        };
+        let raw = BASE64_STANDARD.decode(key)?;
+        Ok(Some(raw))
     }
 }
 
 impl BaseFsRepository for SessionFsRepository {}
-impl AuthorizedRepository for SessionFsRepository {}
 
 #[cfg(test)]
 mod tests {
@@ -110,10 +114,12 @@ mod tests {
     async fn create_and_get_session() -> Result<()> {
         let tmpdir = TempDir::new()?;
         let repo = SessionFsRepository::new(tmpdir.path());
-        let sid = repo.create(None).await?.id;
-        assert!(repo.exists(&sid).await?);
-        let sess = repo.get(&sid).await?;
-        assert_eq!(sess.id, sid);
+        let sess = Session::default();
+        let sid = &sess.id;
+        repo.create(&sess).await?;
+        assert!(repo.exists(sid).await?);
+        let sess2 = repo.get(sid).await?;
+        assert_eq!(sess2, sess);
         Ok(())
     }
 }

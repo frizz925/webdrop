@@ -17,7 +17,7 @@ pub struct SessionDto {
     pub crypto: Option<SessionCryptoDto>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Session {
     pub id: SessionId,
     pub objects: VecDeque<Object>,
@@ -43,6 +43,12 @@ impl Session {
         if let Some(idx) = self.objects.iter().position(|o| &o.id == oid) {
             self.objects.remove(idx);
         }
+    }
+}
+
+impl Default for Session {
+    fn default() -> Self {
+        Self::new(SnowflakeId::generate(), None)
     }
 }
 
@@ -78,7 +84,7 @@ pub struct SessionCryptoDto {
     pub kdf_params: KDFParams,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct SessionCrypto {
     pub auth_key: String,
     pub kdf_params: KDFParams,

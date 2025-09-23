@@ -46,9 +46,15 @@ impl<R: SessionRepository> WebSocketService<R> {
     }
 
     pub async fn auth(&self, sid: &SessionId, auth_key: &[u8]) -> Result<bool> {
-        self.repository
-            .auth(sid, auth_key)
+        if let Some(expected) = self
+            .repository
+            .auth_key(sid)
             .await
-            .map_err(|e| WebSocketError::Other(e))
+            .map_err(WebSocketError::Other)?
+        {
+            Ok(auth_key == &expected)
+        } else {
+            Ok(true)
+        }
     }
 }

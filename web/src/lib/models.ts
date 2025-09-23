@@ -41,6 +41,7 @@ export interface FileObjectDto<C extends Content = Content> {
 	id: ObjectID;
 	timestamp: string;
 	content: C;
+	authKey?: string;
 }
 
 export interface FileObject<C extends Content = Content> {
@@ -48,6 +49,7 @@ export interface FileObject<C extends Content = Content> {
 	timestamp: Date;
 	content: C;
 	mime?: string;
+	authKey?: string;
 }
 
 export interface Session {
@@ -75,6 +77,7 @@ export const objectFromDto = <C extends Content>(dto: FileObjectDto<C>) => {
 	return {
 		id: dto.id,
 		content: dto.content,
-		timestamp: parseISO(dto.timestamp)
+		timestamp: parseISO(dto.timestamp),
+		authKey: dto.authKey
 	} as FileObject<C>;
 };

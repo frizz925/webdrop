@@ -167,14 +167,14 @@ async fn delete_object(
     )
 }
 
-async fn check_auth_key<R: SessionRepository>(
+async fn check_auth_key<R: SessionRepository, E: AuthKeyExtractor>(
     service: &Arc<SessionService<R>>,
     sid: &SessionId,
-    headers: &HeaderMap,
+    extractor: E,
 ) -> Result<(), StatusCode> {
-    let auth_key = headers.extract_auth_key()?;
+    let auth_key = extractor.extract_auth_key()?;
     if service
-        .auth(sid, &auth_key)
+        .session_auth(sid, &auth_key)
         .await
         .map_err(|err| match err {
             SessionError::NotFound => StatusCode::NOT_FOUND,

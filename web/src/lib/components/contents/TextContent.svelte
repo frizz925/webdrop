@@ -21,13 +21,13 @@
 </script>
 
 <Content {object} {copyMenu} {onDelete}>
-	<div class="wrap-anywhere overflow-hidden whitespace-pre-wrap px-4 pt-4">
+	<div class="overflow-hidden px-4 pt-4 wrap-anywhere whitespace-pre-wrap">
 		{#if isSecret}
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<span
 				class={[
-					'cursor-pointer select-none bg-gray-500',
+					'cursor-pointer bg-gray-500 select-none',
 					secretShown ? 'text-gray-50' : 'text-transparent'
 				]}
 				onclick={() => (secretShown = !secretShown)}
