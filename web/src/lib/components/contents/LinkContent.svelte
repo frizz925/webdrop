@@ -46,7 +46,7 @@
 			hidden: obj.content.kind === 'file'
 		},
 		{
-			label: 'Copy markdown URL',
+			label: 'Copy Markdown URL',
 			icon: faCode,
 			onClick: () => copyToClipboard(markdownLink, 'Markdown URL'),
 			hidden: obj.content.kind === 'file'
