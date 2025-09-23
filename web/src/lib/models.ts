@@ -35,6 +35,7 @@ export interface ContentCipherParams {
 
 export interface Upload<C extends Content = Content> {
 	content: C;
+	generateAuthKey?: boolean;
 }
 
 export interface FileObjectDto<C extends Content = Content> {
