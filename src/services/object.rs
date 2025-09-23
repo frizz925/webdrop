@@ -73,7 +73,7 @@ impl<O: ObjectRepository, S> ObjectService<O, S> {
         if let Some(expected) = self
             .repository
             .auth_key(oid)
-            .map_err(ObjectError::Other)
+            .map_err(normalize_error)
             .await?
         {
             Ok(auth_key == &expected)
