@@ -2,7 +2,7 @@ FROM rust:alpine AS server
 WORKDIR /usr/src/webdrop
 COPY . .
 RUN apk add --no-cache musl-dev
-RUN --mount=type=bind,src=./target,dst=/usr/src/webdrop/target,rw=true \
+RUN --mount=type=bind,src=./target,dst=/usr/src/webdrop/target,rw \
   --mount=type=cache,id=cargo,target=/usr/local/cargo/registry \
   cargo install --path .
 
