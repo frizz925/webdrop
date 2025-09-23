@@ -77,7 +77,7 @@ impl<R: SessionRepository> SessionService<R> {
             .repository
             .auth_key(sid)
             .await
-            .map_err(SessionError::Other)?
+            .map_err(normalize_error)?
         {
             Ok(auth_key == &expected)
         } else {
