@@ -29,7 +29,8 @@ export const jsonRequest = <T>(method: string, data: T) =>
 export const getFileURL = (sid: SessionID, obj: FileObject, content: FileContent) => {
 	const url = `/objects/${sid}/${obj.id}/${content.name}`;
 	const config = getCryptoConfig();
-	return config ? `${url}?auth=${config.authKeyURL}` : url;
+	const authKey = (obj.authKey && base64URL(obj.authKey)) || config?.authKeyURL;
+	return authKey ? `${url}?auth=${authKey}` : url;
 };
 
 export const base64URL = (b64: string) =>
