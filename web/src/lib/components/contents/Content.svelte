@@ -1,9 +1,10 @@
 <script lang="ts">
 	import type { FileObject, ObjectID } from '$lib/models';
-	import { faEllipsisV, faLink, faTrash } from '@fortawesome/free-solid-svg-icons';
+	import { faCode, faEllipsisV, faLink, faTrash } from '@fortawesome/free-solid-svg-icons';
 	import { format, formatDistanceToNowStrict } from 'date-fns';
 	import { onMount, type Snippet } from 'svelte';
 
+	import { createMarkdownURL } from '$lib/utils';
 	import IconButton from '../buttons/IconButton.svelte';
 	import DropdownMenu, { type Menu } from '../DropdownMenu.svelte';
 	import { copyToClipboard } from '../utils';
@@ -11,12 +12,13 @@
 	export interface PartialProps {
 		object: FileObject;
 		children?: Snippet;
-		copyMenu?: Menu;
+		copyMenus?: Menu[];
 		fileURL?: string;
+		filename?: string;
 		onDelete?: (oid: ObjectID) => void;
 	}
 
-	const { object: obj, children, copyMenu, fileURL: fileURL, onDelete }: PartialProps = $props();
+	const { object: obj, children, copyMenus, fileURL, filename, onDelete }: PartialProps = $props();
 	const { id, timestamp, content } = obj;
 	const datetime = format(timestamp, 'yyyy-MM-dd HH:mm:ss');
 	const isTextContent = content.kind !== 'file';
@@ -36,21 +38,40 @@
 		elapsed = formatDistanceToNowStrict(timestamp) + ' ago';
 	};
 
-	const copyLink = () => {
+	const createLink = () => {
 		if (!fileURL) return;
 		const parts = fileURL.split('?', 2);
 		const url = new URL(window.location.toString());
 		url.pathname = parts[0];
 		url.search = parts[1] || '';
+		return url;
+	};
+
+	const copyLink = () => {
+		const url = createLink();
+		if (!url) return;
 		copyToClipboard(url.toString(), 'Object URL');
 	};
 
+	const copyMarkdownLink = () => {
+		const url = createLink();
+		if (!url) return;
+		const markdown = createMarkdownURL(url, filename || url.toString());
+		copyToClipboard(markdown, 'Markdown URL');
+	};
+
 	const menuList: Menu[] = [
-		copyMenu,
+		...(copyMenus || []),
 		{
 			label: 'Copy Object URL',
 			icon: faLink,
 			onClick: copyLink,
+			hidden: isTextContent || !fileURL
+		},
+		{
+			label: 'Copy Markdown URL',
+			icon: faCode,
+			onClick: copyMarkdownLink,
 			hidden: isTextContent || !fileURL
 		},
 		{
@@ -71,7 +92,7 @@
 
 <div class="border-b">
 	{@render children?.()}
-	<div class="text-sub mb-2 flex items-center justify-start pr-2 pl-4 text-sm">
+	<div class="text-sub mb-2 flex items-center justify-start pl-4 pr-2 text-sm">
 		<div class="grow">
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div

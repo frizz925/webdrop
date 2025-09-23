@@ -33,6 +33,11 @@ export const getFileURL = (sid: SessionID, obj: FileObject, content: FileContent
 	return authKey ? `${url}?auth=${authKey}` : url;
 };
 
+export const createMarkdownURL = (url: string | URL, text: string) => {
+	const urlString = url instanceof URL ? url.toString() : url;
+	return `[${text}](${urlString})`;
+};
+
 export const base64URL = (b64: string) =>
 	b64.replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 export const unbase64URL = (b64: string) => b64.replaceAll('-', '+').replaceAll('_', '/');
